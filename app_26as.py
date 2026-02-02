@@ -3,7 +3,6 @@ import pdfplumber
 import re
 import pandas as pd
 import math
-import time
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from io import BytesIO
@@ -12,71 +11,50 @@ from openpyxl.styles import Font
 # ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="TDS Challan Extractor", layout="wide")
 
-# ---------- DARK LUXURY UI ----------
+# ---------- GOOGLE STYLE UI ----------
 st.markdown("""
 <style>
 
 .stApp {
-background: linear-gradient(135deg,#000000,#0f172a,#000000);
-font-family:'Segoe UI',sans-serif;
-color:#e5e7eb;
+background:#f5f7fb;
+font-family: 'Inter', sans-serif;
+color:#202124;
 }
 
-/* Header Neon */
+/* Header */
 .header {
 text-align:center;
-font-size:48px;
-font-weight:800;
-background:linear-gradient(90deg,#38bdf8,#22d3ee);
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-text-shadow:0 0 20px rgba(56,189,248,0.7);
+font-size:42px;
+font-weight:700;
+color:#1a73e8;
+margin-bottom:5px;
 }
 
-/* Glass Card Dark */
-.glass {
-background: rgba(255,255,255,0.06);
-backdrop-filter: blur(14px);
-padding:22px;
-border-radius:16px;
-box-shadow:0 8px 32px rgba(0,0,0,0.6);
-margin-bottom:20px;
-color:#e5e7eb;
-}
-
-/* Neon Metric Cards */
-.metric {
-background:linear-gradient(135deg,#0ea5e9,#22d3ee);
-padding:20px;
-border-radius:14px;
-color:white;
+/* Subtle quote card */
+.quote {
 text-align:center;
-box-shadow:0 0 25px rgba(34,211,238,0.7);
-}
-
-/* Upload */
-[data-testid="stFileUploader"] {
-background: rgba(255,255,255,0.08);
-padding:20px;
-border-radius:14px;
-border:1px solid rgba(255,255,255,0.2);
-}
-
-/* Animated Neon Button */
-.stDownloadButton button {
-background:linear-gradient(90deg,#0ea5e9,#22d3ee);
-color:white;
-border:none;
-padding:14px 24px;
+padding:18px;
+background:white;
 border-radius:12px;
-font-size:16px;
-transition:0.3s;
-box-shadow:0 0 15px #22d3ee;
+box-shadow:0 4px 20px rgba(0,0,0,0.08);
+margin-bottom:25px;
 }
 
-.stDownloadButton button:hover {
-transform:scale(1.1);
-box-shadow:0 0 30px #22d3ee;
+/* Cards */
+.card {
+background:white;
+padding:25px;
+border-radius:14px;
+box-shadow:0 4px 25px rgba(0,0,0,0.06);
+}
+
+/* Upload box */
+[data-testid="stFileUploader"] {
+background:white;
+padding:20px;
+border-radius:12px;
+border:1px solid #e0e3eb;
+box-shadow:0 4px 15px rgba(0,0,0,0.05);
 }
 
 footer {visibility:hidden;}
@@ -89,10 +67,10 @@ st.markdown('<div class="header">🧾 TDS Challan Extractor</div>', unsafe_allow
 
 # ---------- KRISHNA QUOTE ----------
 st.markdown("""
-<div class="glass" style="text-align:center">
+<div class="quote">
 
-🕉️ <b>उद्धरेदात्मनाऽत्मानं नात्मानमवसादयेत्</b><br>
-<i>Elevate yourself through your own efforts — Lord Krishna</i>
+🕉️ <b>योगः कर्मसु कौशलम्</b><br>
+<i>Excellence in action is Yoga — Lord Krishna</i>
 
 </div>
 """, unsafe_allow_html=True)
@@ -104,30 +82,42 @@ files = st.file_uploader(
     accept_multiple_files=True
 )
 
-# ---------- REGEX ----------
+# ---------- REGEX HELPER ----------
 def find(p,t):
     m=re.search(p,t)
     return m.group(1).replace(",","") if m else "0"
 
+# ---------- EXTRACTION ----------
 def extract(t):
     return {
         "FY":find(r"Financial Year\s*:\s*([\d\-]+)",t),
         "Nature":find(r"Nature of Payment\s*:\s*(\S+)",t),
         "Challan":find(r"Challan No\s*:\s*(\d+)",t),
         "Date":find(r"Date of Deposit\s*:\s*(\d{2}-[A-Za-z]{3}-\d{4})",t),
+
         "Tax":find(r"A Tax ₹\s*([\d,]+)",t),
+        "Surcharge":find(r"B Surcharge ₹\s*([\d,]+)",t),
+        "Cess":find(r"C Cess ₹\s*([\d,]+)",t),
         "Interest":find(r"D Interest ₹\s*([\d,]+)",t),
+        "Penalty":find(r"E Penalty ₹\s*([\d,]+)",t),
+        "Fee":find(r"F Fee under section 234E ₹\s*([\d,]+)",t),
         "Total":find(r"Total \(A\+B\+C\+D\+E\+F\) ₹\s*([\d,]+)",t)
     }
 
-# ---------- EXCEL ----------
+# ---------- EXCEL EXPORT ----------
 def excel(df):
     buf=BytesIO()
     with pd.ExcelWriter(buf,engine="openpyxl") as writer:
         df.to_excel(writer,index=False)
         ws=writer.active
+
         for cell in ws[1]:
             cell.font=Font(bold=True)
+
+        for col in ws.columns:
+            max_len=max(len(str(c.value)) for c in col)
+            ws.column_dimensions[col[0].column_letter].width=max_len+2
+
     return buf.getvalue()
 
 # ---------- PROCESS ----------
@@ -145,9 +135,11 @@ if files:
                     text+=p.extract_text()
 
         if not text.strip():
+            st.warning(f"OCR needed: {f.name}")
             continue
 
         d=extract(text)
+
         if d["Date"]=="0":
             continue
 
@@ -156,17 +148,28 @@ if files:
         tax=float(d["Tax"])
         interest=float(d["Interest"])
 
-        delay_months=math.ceil(interest/(tax*0.015)) if tax>0 and interest>0 else 1
+        delay_months = math.ceil(
+            interest/(tax*0.015)
+        ) if tax>0 and interest>0 else 1
+
         tds_month=(dep-relativedelta(months=delay_months)).strftime("%B")
 
+        due=dep.replace(day=7)
+        delay_days=(dep-due).days
+
         rows.append({
-            "FY":d["FY"],
+            "Financial Year":d["FY"],
             "TDS Month":tds_month,
             "Deposit Date":d["Date"],
+            "Delay (Days)":delay_days,
             "Nature":d["Nature"],
             "Challan No":d["Challan"],
             "Tax":tax,
+            "Surcharge":float(d["Surcharge"]),
+            "Cess":float(d["Cess"]),
             "Interest":interest,
+            "Penalty":float(d["Penalty"]),
+            "Fee 234E":float(d["Fee"]),
             "Total":float(d["Total"]),
             "Status":"Late" if interest>0 else "On Time"
         })
@@ -175,28 +178,18 @@ if files:
 
     df=pd.DataFrame(rows)
 
+    # ---------- DASHBOARD ----------
     st.success("✅ Processing Complete")
 
-    # ---------- ANIMATED METRICS ----------
     c1,c2,c3,c4=st.columns(4)
 
-    def animate(col,label,value):
-        for i in range(0,value+1,max(1,value//25 or 1)):
-            col.markdown(f'<div class="metric"><h4>{label}</h4><h2>{i}</h2></div>',unsafe_allow_html=True)
-            time.sleep(0.01)
-        col.markdown(f'<div class="metric"><h4>{label}</h4><h2>{value}</h2></div>',unsafe_allow_html=True)
+    c1.metric("Challans",len(df))
+    c2.metric("Total Tax",f"₹ {df['Tax'].sum():,.0f}")
+    c3.metric("Total Interest",f"₹ {df['Interest'].sum():,.0f}")
+    c4.metric("Late Cases",(df["Interest"]>0).sum())
 
-    animate(c1,"Challans",len(df))
-    animate(c2,"Late Cases",(df["Interest"]>0).sum())
-    animate(c3,"Tax ₹",int(df["Tax"].sum()))
-    animate(c4,"Interest ₹",int(df["Interest"].sum()))
-
-    # ---------- TABLE ----------
-    st.markdown('<div class="glass">',unsafe_allow_html=True)
     st.dataframe(df,use_container_width=True)
-    st.markdown('</div>',unsafe_allow_html=True)
 
-    # ---------- DOWNLOAD ----------
     st.download_button(
         "📥 Download Excel",
         data=excel(df),
