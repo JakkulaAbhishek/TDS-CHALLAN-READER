@@ -24,12 +24,12 @@ padding:20px;border-radius:15px;text-align:center;}
 """, unsafe_allow_html=True)
 
 # ----------- TITLE -----------
-st.markdown("<h1>🕉️ TDS CHALLAN EXTRACTOR — Guided by Krishna's Wisdom</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🕉️ TDS CHALLAN EXTRACTOR</h1>", unsafe_allow_html=True)
 
-# ----------- LORD KRISHNA QUOTE -----------
+# ----------- KRISHNA QUOTE -----------
 st.markdown("""
 <div class="quote">
-🕉️ कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।  
+कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।  
 "You have the right to perform your duty, not the fruits." — Lord Krishna
 </div>
 """, unsafe_allow_html=True)
@@ -68,28 +68,32 @@ def extract_all(text):
 
         dep_date=datetime.strptime(dep_date_str,"%d-%b-%Y")
 
-        # 🔥 TDS MONTH
-        tds_month=(dep_date-relativedelta(months=1)).strftime("%B")
+        # -------- TDS MONTH --------
+        tds_month_date = dep_date - relativedelta(months=1)
+        tds_month = tds_month_date.strftime("%B")
 
-        # 🔥 DUE DATE (7th of deposit month)
-        due_date=dep_date.replace(day=7)
-        delay_days=max((dep_date-due_date).days,0)
+        # -------- DUE DATE --------
+        due_date = (tds_month_date + relativedelta(months=1)).replace(day=7)
+
+        # -------- DELAY DAYS --------
+        delay_days = (dep_date - due_date).days
 
         tax=float(f(r"A Tax ₹\s*([\d,]+)"))
         interest=float(f(r"D Interest ₹\s*([\d,]+)"))
 
-        # 🔥 EFFECTIVE MONTH (Interest logic)
-        eff_month=""
+        # -------- EFFECTIVE MONTH --------
         if interest>0 and tax>0:
-            months_delay=math.ceil(interest/(tax*0.015))
-            eff_month=(dep_date-relativedelta(months=months_delay)).strftime("%B")
+            months_delay = math.ceil(interest/(tax*0.015))
+            eff_month = (dep_date - relativedelta(months=months_delay)).strftime("%B")
+        else:
+            eff_month = tds_month
 
         rows.append({
             "Financial Year":f(r"Financial Year\s*:\s*([\d\-]+)"),
             "TDS Month":tds_month,
             "Deposit Date":dep_date_str,
             "Delay (Days)":delay_days,
-            "TDS Effective Month":eff_month,
+            "Effective Month":eff_month,
             "Nature":f(r"Nature of Payment\s*:\s*(\w+)"),
             "Challan No":f(r"Challan No\s*:\s*(\d+)"),
             "Tax":tax,
