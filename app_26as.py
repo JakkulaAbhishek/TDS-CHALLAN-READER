@@ -8,147 +8,157 @@ from io import BytesIO
 
 # ---------- PAGE CONFIG ----------
 st.set_page_config(
-    page_title="TDS Divine Bulk Parser",
+    page_title="TDS Divine Parser PRO",
     page_icon="🦚",
     layout="wide"
 )
 
-# ---------- STYLING ----------
+# ---------- BEAUTIFUL UI ----------
 st.markdown("""
 <style>
-.big-title {
+
+.stApp {
+    background: linear-gradient(135deg,#141e30,#243b55);
+    color:white;
+}
+
+.title {
     text-align:center;
-    color:#1e3c72;
-    font-size:40px;
+    font-size:42px;
     font-weight:bold;
+    background: linear-gradient(45deg,gold,white);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
-.subtitle {
-    text-align:center;
-    color:gold;
-    font-size:20px;
+
+.glass {
+    background: rgba(255,255,255,0.12);
+    padding:25px;
+    border-radius:15px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 0 25px rgba(255,255,255,0.15);
 }
+
 .footer {
     text-align:center;
-    color:grey;
+    color:#ccc;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- HEADER ----------
-st.markdown('<p class="big-title">🦚 TDS Divine Bulk Parser</p>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">"Like Krishna guiding Arjuna, this tool guides your compliance."</p>', unsafe_allow_html=True)
+st.markdown('<p class="title">🦚 TDS Divine Parser PRO</p>', unsafe_allow_html=True)
+
+st.markdown('<div class="glass">', unsafe_allow_html=True)
 
 uploaded_files = st.file_uploader(
-    "📄 Upload One or More TDS Challan PDFs",
+    "📄 Upload TDS Challan PDFs",
     type="pdf",
     accept_multiple_files=True
 )
 
 # ---------- FUNCTIONS ----------
-def extract_data(text):
+def find(pattern,text):
+    m=re.search(pattern,text)
+    return m.group(1).replace(",","").strip() if m else "0"
 
-    def search(pattern):
-        m = re.search(pattern, text)
-        return m.group(1).strip() if m else ""
-
+def extract(text):
     return {
-        "Financial Year": search(r"Financial Year\s*:\s*([\d\-]+)"),
-        "Nature of Payment": search(r"Nature of Payment\s*:\s*(\S+)"),
-        "Amount": search(r"Amount \(in Rs.\)\s*:\s*₹?\s*([\d,]+)"),
-        "Challan No": search(r"Challan No\s*:\s*(\d+)"),
-        "Deposit Date": search(r"Date of Deposit\s*:\s*(\d{2}-[A-Za-z]{3}-\d{4})"),
-        "Interest": search(r"Interest ₹\s*([\d,]+)")
+        "FY": find(r"Financial Year\s*:\s*([\d\-]+)",text),
+        "Nature": find(r"Nature of Payment\s*:\s*(\S+)",text),
+        "Challan": find(r"Challan No\s*:\s*(\d+)",text),
+        "Date": find(r"Date of Deposit\s*:\s*(\d{2}-[A-Za-z]{3}-\d{4})",text),
+
+        "Tax": find(r"A Tax ₹\s*([\d,]+)",text),
+        "Surcharge": find(r"B Surcharge ₹\s*([\d,]+)",text),
+        "Cess": find(r"C Cess ₹\s*([\d,]+)",text),
+        "Interest": find(r"D Interest ₹\s*([\d,]+)",text),
+        "Penalty": find(r"E Penalty ₹\s*([\d,]+)",text),
+        "Fee234E": find(r"F Fee under section 234E ₹\s*([\d,]+)",text),
+        "Total": find(r"Total \(A\+B\+C\+D\+E\+F\) ₹\s*([\d,]+)",text)
     }
 
-def convert_to_excel(df):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False)
-    return output.getvalue()
+def excel(df):
+    buf=BytesIO()
+    with pd.ExcelWriter(buf,engine="openpyxl") as w:
+        df.to_excel(w,index=False)
+    return buf.getvalue()
 
 # ---------- MAIN ----------
 if uploaded_files:
 
-    rows = []
-    s_no = 1
+    rows=[]
+    s=1
 
     for file in uploaded_files:
-
         try:
+            text=""
             with pdfplumber.open(file) as pdf:
-                text = ""
-                for page in pdf.pages:
-                    if page.extract_text():
-                        text += page.extract_text()
+                for p in pdf.pages:
+                    if p.extract_text():
+                        text+=p.extract_text()
 
-            data = extract_data(text)
+            d=extract(text)
 
-            if not data["Deposit Date"] or not data["Amount"]:
+            if d["Date"]=="0":
                 continue
 
-            deposit_date = datetime.strptime(
-                data["Deposit Date"], "%d-%b-%Y"
-            )
+            dep_date=datetime.strptime(d["Date"],"%d-%b-%Y")
 
-            tds_month = (
-                deposit_date - relativedelta(months=1)
-            ).strftime("%B")
+            tax=float(d["Tax"])
+            interest=float(d["Interest"])
 
-            amount = float(data["Amount"].replace(",", ""))
+            # ---------- INTEREST PROVISION LOGIC ----------
+            delay_months=0
+            if interest>0 and tax>0:
+                delay_months=round(interest/(tax*0.015))
 
-            interest_present = (
-                float(data["Interest"].replace(",", ""))
-                if data["Interest"] else 0
-            )
-
-            calc_interest = (
-                round(amount * 0.015, 2)
-                if interest_present > 0 else 0
-            )
+            tds_month=(dep_date-relativedelta(months=delay_months if delay_months>0 else 1)).strftime("%B")
 
             rows.append({
-                "S.No": s_no,
-                "Financial Year": data["Financial Year"],
-                "TDS Month": tds_month,
-                "Date of Deposit": data["Deposit Date"],
-                "Nature of Payment": data["Nature of Payment"],
-                "Challan No": data["Challan No"],
-                "Amount (₹)": amount,
-                "1.5% Interest (₹)": calc_interest
+                "S.No":s,
+                "Financial Year":d["FY"],
+                "TDS Month":tds_month,
+                "Date of Deposit":d["Date"],
+                "Nature of Payment":d["Nature"],
+                "Challan No":d["Challan"],
+
+                "Tax (₹)":tax,
+                "Surcharge (₹)":float(d["Surcharge"]),
+                "Cess (₹)":float(d["Cess"]),
+                "Interest (₹)":interest,
+                "Penalty (₹)":float(d["Penalty"]),
+                "Fee 234E (₹)":float(d["Fee234E"]),
+                "Total (₹)":float(d["Total"])
             })
 
-            s_no += 1
+            s+=1
 
         except:
-            st.warning(f"⚠️ Error reading {file.name}")
+            st.warning(f"Error in {file.name}")
 
-    # ---------- OUTPUT ----------
     if rows:
 
-        df = pd.DataFrame(rows)
+        df=pd.DataFrame(rows)
 
-        st.success(f"✅ Extracted {len(df)} challans")
+        st.success(f"✅ Processed {len(df)} Challans")
 
-        st.dataframe(df, use_container_width=True)
-
-        excel = convert_to_excel(df)
+        st.dataframe(df,use_container_width=True)
 
         st.download_button(
             "📥 Download Excel",
-            data=excel,
-            file_name="TDS_Bulk_Output.xlsx",
+            data=excel(df),
+            file_name="TDS_Full_Report.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
         st.markdown("""
-        <h3 style='text-align:center;color:purple;'>
-        🌸 "Dharma in taxation leads to peace in life." – Lord Krishna
+        <h3 style='text-align:center;color:gold;'>
+        🌸 “Perform your duty with integrity.” – Lord Krishna
         </h3>
-        """, unsafe_allow_html=True)
+        """,unsafe_allow_html=True)
 
-# ---------- FOOTER ----------
+st.markdown("</div>",unsafe_allow_html=True)
+
 st.markdown("---")
-st.markdown(
-    '<p class="footer">⚙️ Tool developed by Abhishek Jakkula</p>',
-    unsafe_allow_html=True
-)
+st.markdown('<p class="footer">⚙️ Tool developed by Abhishek Jakkula</p>',unsafe_allow_html=True)
