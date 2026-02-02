@@ -2,81 +2,115 @@ import streamlit as st
 import pdfplumber
 import re
 import pandas as pd
-import math
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
 from io import BytesIO
 from openpyxl.styles import Font
+from datetime import datetime
 
-# ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="TDS Challan Extractor", layout="wide")
+# ---------------- UI CONFIG ----------------
+st.set_page_config("TDS Challan Extractor", layout="wide")
 
-# ---------- LORD KRISHNA QUOTE ----------
+# ----------- ANIMATED CSS -----------
 st.markdown("""
-### 🕉️ Bhagavad Gita Wisdom
+<style>
 
-**यउद्धरेदात्मनात्मानं नात्मानमवसादयेत् ।  
-आत्मैव ह्यात्मनो बन्धुरात्मैव रिपुरात्मनः ॥**
+.stApp {
+background: linear-gradient(135deg,#020617,#0f172a,#020617);
+color:white;
+font-family:Segoe UI;
+}
 
-*“Elevate yourself through your mind.  
-The mind can be your best friend or your worst enemy.”* — Lord Krishna
-""")
+h1 {
+text-align:center;
+font-size:50px;
+background: linear-gradient(90deg,#38bdf8,#22c55e);
+-webkit-background-clip:text;
+color:transparent;
+animation: glow 2s infinite alternate;
+}
 
-# ---------- FILE UPLOAD ----------
-files = st.file_uploader(
-    "📄 Upload TDS Challans",
-    type="pdf",
-    accept_multiple_files=True
-)
+@keyframes glow {
+from { text-shadow:0 0 10px #38bdf8;}
+to { text-shadow:0 0 25px #22c55e;}
+}
 
-# ---------- REGEX HELPER ----------
-def find(p,t):
-    m=re.search(p,t,re.S)
-    return m.group(1).replace(",","").strip() if m else "0"
+.quote{
+background:rgba(255,255,255,0.05);
+padding:20px;
+border-radius:15px;
+text-align:center;
+font-size:18px;
+}
 
-# ---------- CHALLAN BLOCK PATTERN ----------
-CHALLAN_PATTERN = re.compile(
-    r"(Challan No\s*:.*?Total.*?\d+)",
-    re.S
-)
+</style>
+""", unsafe_allow_html=True)
 
-# ---------- EXTRACTION ----------
-def extract_block(t):
-    return {
-        "FY":find(r"Financial Year\s*:\s*([\d\-]+)",t),
-        "Nature":find(r"Nature of Payment\s*:\s*([A-Za-z0-9]+)",t),
-        "Challan":find(r"Challan No\s*:\s*(\d+)",t),
-        "Date":find(r"Date of Deposit\s*:\s*(\d{2}-[A-Za-z]{3}-\d{4})",t),
+# ----------- TITLE -----------
+st.markdown("<h1>🧾 TDS CHALLAN EXTRACTOR</h1>", unsafe_allow_html=True)
 
-        "Tax":find(r"A Tax.*?₹\s*([\d,]+)",t),
-        "Surcharge":find(r"B Surcharge.*?₹\s*([\d,]+)",t),
-        "Cess":find(r"C Cess.*?₹\s*([\d,]+)",t),
-        "Interest":find(r"D Interest.*?₹\s*([\d,]+)",t),
-        "Penalty":find(r"E Penalty.*?₹\s*([\d,]+)",t),
-        "Fee":find(r"F Fee.*?₹\s*([\d,]+)",t),
-        "Total":find(r"Total.*?₹\s*([\d,]+)",t)
-    }
+# ----------- LORD KRISHNA QUOTE -----------
+st.markdown("""
+<div class="quote">
 
-# ---------- EXCEL EXPORT ----------
-def excel(df):
+🕉️ **कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।**  
+**मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥**
+
+*"You have the right to perform your duty,  
+but not to the fruits of your actions."*  
+— Lord Krishna
+
+</div>
+""", unsafe_allow_html=True)
+
+# ----------- FILE UPLOAD -----------
+files = st.file_uploader("📄 Upload ITNS 281 Challans", type="pdf", accept_multiple_files=True)
+
+# ----------- EXCEL EXPORT -----------
+def to_excel(df):
     buf=BytesIO()
     with pd.ExcelWriter(buf,engine="openpyxl") as writer:
-        df.to_excel(writer,index=False,sheet_name="TDS Data")
-        ws = writer.sheets["TDS Data"]
-
-        for cell in ws[1]:
-            cell.font = Font(bold=True)
-
-        for col in ws.columns:
-            max_len=max(len(str(c.value)) for c in col)
-            ws.column_dimensions[col[0].column_letter].width=max_len+2
-
+        df.to_excel(writer,index=False,sheet_name="TDS")
+        ws=writer.sheets["TDS"]
+        for c in ws[1]:
+            c.font=Font(bold=True)
     return buf.getvalue()
 
-# ---------- PROCESS ----------
-if files:
+# ----------- EXTRACTION LOGIC -----------
+def extract_all(text):
+
+    challans=text.split("Challan Receipt")
 
     rows=[]
+
+    for ch in challans:
+
+        challan_no=re.search(r"Challan No\s*:\s*(\d+)",ch)
+        if not challan_no:
+            continue
+
+        def f(p):
+            m=re.search(p,ch)
+            return m.group(1).replace(",","") if m else "0"
+
+        rows.append({
+            "Financial Year":f(r"Financial Year\s*:\s*([\d\-]+)"),
+            "Nature":f(r"Nature of Payment\s*:\s*(\w+)"),
+            "Challan No":f(r"Challan No\s*:\s*(\d+)"),
+            "Deposit Date":f(r"Date of Deposit\s*:\s*(\d{2}-[A-Za-z]{3}-\d{4})"),
+            "Tax":float(f(r"A Tax ₹\s*([\d,]+)")),
+            "Surcharge":float(f(r"B Surcharge ₹\s*([\d,]+)")),
+            "Cess":float(f(r"C Cess ₹\s*([\d,]+)")),
+            "Interest":float(f(r"D Interest ₹\s*([\d,]+)")),
+            "Penalty":float(f(r"E Penalty ₹\s*([\d,]+)")),
+            "Fee 234E":float(f(r"F Fee under section 234E ₹\s*([\d,]+)")),
+            "Total":float(f(r"Total \(A\+B\+C\+D\+E\+F\) ₹\s*([\d,]+)"))
+        })
+
+    return rows
+
+# ----------- PROCESS -----------
+if files:
+
+    all_rows=[]
 
     for f in files:
 
@@ -86,62 +120,29 @@ if files:
                 if p.extract_text():
                     text+=p.extract_text()+"\n"
 
-        challans = CHALLAN_PATTERN.findall(text)
+        all_rows+=extract_all(text)
 
-        for ch in challans:
+    if all_rows:
 
-            d=extract_block(ch)
+        df=pd.DataFrame(all_rows)
 
-            if d["Date"]=="0":
-                continue
+        st.success("✅ Challans Extracted Successfully!")
 
-            dep=datetime.strptime(d["Date"],"%d-%b-%Y")
-
-            tax=float(d["Tax"])
-            interest=float(d["Interest"])
-
-            delay_months = math.ceil(
-                interest/(tax*0.015)
-            ) if tax>0 and interest>0 else 0
-
-            tds_month=(dep-relativedelta(months=delay_months)).strftime("%B")
-
-            # Due date = 7th next month
-            due=(dep.replace(day=1)+relativedelta(months=1)).replace(day=7)
-            delay_days=max((dep-due).days,0)
-
-            rows.append({
-                "Financial Year":d["FY"],
-                "TDS Month":tds_month,
-                "Deposit Date":d["Date"],
-                "Delay (Days)":delay_days,
-                "Nature":d["Nature"],
-                "Challan No":d["Challan"],
-                "Tax":tax,
-                "Surcharge":float(d["Surcharge"]),
-                "Cess":float(d["Cess"]),
-                "Interest":interest,
-                "Penalty":float(d["Penalty"]),
-                "Fee 234E":float(d["Fee"]),
-                "Total":float(d["Total"]),
-                "Status":"Late ⚠️" if interest>0 else "On Time ✅"
-            })
-
-    if rows:
-
-        df=pd.DataFrame(rows)
-
-        st.success("✅ Extraction Complete")
+        c1,c2,c3=st.columns(3)
+        c1.metric("Total Challans",len(df))
+        c2.metric("Total Tax ₹",f"{df['Tax'].sum():,.0f}")
+        c3.metric("Total Deposit ₹",f"{df['Total'].sum():,.0f}")
 
         st.dataframe(df,use_container_width=True)
 
         st.download_button(
             "📥 Download Excel",
-            data=excel(df),
-            file_name="TDS_Report.xlsx"
+            data=to_excel(df),
+            file_name="TDS_Challans.xlsx"
         )
 
     else:
-        st.warning("No challans detected")
+        st.warning("⚠️ No challans detected. Try another file.")
 
+# ----------- FOOTER -----------
 st.caption("⚙️ Tool developed by Abhishek Jakkula - ABHISHEKJAKKULA5@GMAIL.COM 🦚")
