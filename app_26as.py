@@ -18,7 +18,12 @@ st.markdown("""
 .stApp {
 background:#f6f8fc;
 font-family:'Inter',sans-serif;
-color:#202124;
+color:#202124 !important;
+}
+
+/* Force dark text everywhere */
+html, body, [class*="css"] {
+color:#202124 !important;
 }
 
 /* Header */
@@ -37,6 +42,7 @@ background:white;
 border-radius:12px;
 box-shadow:0 4px 20px rgba(0,0,0,0.08);
 margin-bottom:25px;
+color:#202124;
 }
 
 /* Animated Button */
@@ -61,6 +67,7 @@ padding:20px;
 border-radius:12px;
 border:1px solid #e0e3eb;
 box-shadow:0 4px 15px rgba(0,0,0,0.05);
+color:#202124;
 }
 
 footer {visibility:hidden;}
@@ -71,12 +78,12 @@ footer {visibility:hidden;}
 # ---------- HEADER ----------
 st.markdown('<div class="header">🧾 TDS Challan Extractor</div>', unsafe_allow_html=True)
 
-# ---------- NEW KRISHNA SHLOKA ----------
+# ---------- KRISHNA QUOTE ----------
 st.markdown("""
 <div class="quote">
 
-🕉️ <b>न हि ज्ञानेन सदृशं पवित्रमिह विद्यते</b><br>
-<i>"There is nothing as purifying as knowledge." — Lord Krishna</i>
+🕉️ <b>कर्मण्येवाधिकारस्ते मा फलेषु कदाचन</b><br>
+<i>You have the right to perform your duty, but not to the results — Lord Krishna</i>
 
 </div>
 """, unsafe_allow_html=True)
@@ -100,11 +107,7 @@ def extract(t):
         "Challan":find(r"Challan No\s*:\s*(\d+)",t),
         "Date":find(r"Date of Deposit\s*:\s*(\d{2}-[A-Za-z]{3}-\d{4})",t),
         "Tax":find(r"A Tax ₹\s*([\d,]+)",t),
-        "Surcharge":find(r"B Surcharge ₹\s*([\d,]+)",t),
-        "Cess":find(r"C Cess ₹\s*([\d,]+)",t),
         "Interest":find(r"D Interest ₹\s*([\d,]+)",t),
-        "Penalty":find(r"E Penalty ₹\s*([\d,]+)",t),
-        "Fee":find(r"F Fee under section 234E ₹\s*([\d,]+)",t),
         "Total":find(r"Total \(A\+B\+C\+D\+E\+F\) ₹\s*([\d,]+)",t)
     }
 
@@ -157,7 +160,7 @@ if files:
         delay_days=(dep-due).days
 
         rows.append({
-            "FY":d["FY"],
+            "Financial Year":d["FY"],
             "TDS Month":tds_month,
             "Deposit Date":d["Date"],
             "Delay Days":delay_days,
@@ -187,15 +190,8 @@ if files:
 
     # ---------- CHARTS ----------
     st.subheader("📊 Analytics Dashboard")
-
-    col1,col2=st.columns(2)
-
-    with col1:
-        st.bar_chart(df[["Tax","Interest"]])
-
-    with col2:
-        st.write("### Compliance Status")
-        st.dataframe(df["Status"].value_counts())
+    st.bar_chart(df[["Tax","Interest"]])
+    st.bar_chart(df["Status"].value_counts())
 
     # ---------- DOWNLOAD ----------
     st.download_button(
