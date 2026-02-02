@@ -6,26 +6,33 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from io import BytesIO
 import os
-from openai import OpenAI
 
-client = OpenAI()
+# ---------- SAFE OPENAI SETUP ----------
+api_key = None
+
+if "OPENAI_API_KEY" in st.secrets:
+    api_key = st.secrets["OPENAI_API_KEY"]
+elif os.getenv("OPENAI_API_KEY"):
+    api_key = os.getenv("OPENAI_API_KEY")
+
+client = None
+if api_key:
+    from openai import OpenAI
+    client = OpenAI(api_key=api_key)
 
 # ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="TDS Divine AI Suite", page_icon="🦚", layout="wide")
+st.set_page_config(
+    page_title="TDS Divine AI Suite",
+    page_icon="🦚",
+    layout="wide"
+)
 
 # ---------- BEAUTIFUL UI ----------
 st.markdown("""
 <style>
-
 .stApp {
 background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
 color:white;
-animation: fadeIn 1.5s ease-in;
-}
-
-@keyframes fadeIn {
-0% {opacity:0;}
-100% {opacity:1;}
 }
 
 .title {
@@ -44,14 +51,6 @@ border-radius:18px;
 backdrop-filter: blur(15px);
 box-shadow: 0 0 40px rgba(255,215,0,0.3);
 }
-
-.krishna {
-text-align:center;
-font-size:20px;
-color:gold;
-line-height:1.8;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -59,41 +58,42 @@ st.markdown('<div class="title">🦚 TDS Divine AI Suite</div>', unsafe_allow_ht
 
 # ---------- KRISHNA SHLOKA ----------
 st.markdown("""
-<div class="krishna">
-🕉️ कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।<br>
-मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥
-<br><br>
-"You have a right to perform your duty, but not to the results."
-</div>
-""", unsafe_allow_html=True)
+🕉️ **कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।**  
+**मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥**
+
+*"You have a right to perform your duty, not to the fruits."*
+""")
 
 # ---------- AI ASSISTANT ----------
 st.sidebar.title("🤖 Krishna AI Assistant")
 
+if not api_key:
+    st.sidebar.warning("Add OPENAI_API_KEY in Streamlit Secrets to enable AI")
+
 if "chat" not in st.session_state:
     st.session_state.chat=[]
 
-user_msg = st.sidebar.chat_input("Ask tax/compliance doubt...")
+msg = st.sidebar.chat_input("Ask tax doubt...")
 
-if user_msg:
-    st.session_state.chat.append(("user",user_msg))
+if msg and client:
+    st.session_state.chat.append(("user",msg))
 
-    resp = client.chat.completions.create(
+    res = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role":"user","content":user_msg}]
+        messages=[{"role":"user","content":msg}]
     )
 
-    reply = resp.choices[0].message.content
-    st.session_state.chat.append(("ai",reply))
+    reply = res.choices[0].message.content
+    st.session_state.chat.append(("assistant",reply))
 
-for role,msg in st.session_state.chat:
-    with st.sidebar.chat_message(role):
-        st.write(msg)
+for r,m in st.session_state.chat:
+    with st.sidebar.chat_message(r):
+        st.write(m)
 
-# ---------- MAIN PARSER ----------
+# ---------- PARSER ----------
 st.markdown('<div class="glass">', unsafe_allow_html=True)
 
-uploaded_files = st.file_uploader(
+files = st.file_uploader(
     "📄 Upload TDS Challans",
     type="pdf",
     accept_multiple_files=True
@@ -125,12 +125,12 @@ def excel(df):
         df.to_excel(w,index=False)
     return buf.getvalue()
 
-if uploaded_files:
+if files:
 
     rows=[]
     s=1
 
-    for f in uploaded_files:
+    for f in files:
 
         text=""
         with pdfplumber.open(f) as pdf:
@@ -148,7 +148,7 @@ if uploaded_files:
         tax=float(d["Tax"])
         interest=float(d["Interest"])
 
-        delay= round(interest/(tax*0.015)) if tax>0 and interest>0 else 1
+        delay=round(interest/(tax*0.015)) if tax>0 and interest>0 else 1
 
         tds_month=(dep-relativedelta(months=delay)).strftime("%B")
 
@@ -184,4 +184,4 @@ if uploaded_files:
 st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown("---")
-st.markdown("⚙️ Tool developed by Abhishek Jakkula")
+st.write("⚙️ Tool developed by Abhishek Jakkula")
