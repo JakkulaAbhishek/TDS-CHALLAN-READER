@@ -62,7 +62,7 @@ but not to the fruits of your actions."*
 """, unsafe_allow_html=True)
 
 # ----------- FILE UPLOAD -----------
-files = st.file_uploader("📄 Upload ITNS 281 Challans", type="pdf", accept_multiple_files=True)
+files = st.file_uploader("📄 Upload Challans in PDF", type="pdf", accept_multiple_files=True)
 
 # ----------- EXCEL EXPORT -----------
 def to_excel(df):
