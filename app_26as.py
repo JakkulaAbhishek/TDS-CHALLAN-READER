@@ -9,7 +9,7 @@ from io import BytesIO
 from openpyxl.styles import Font
 
 # ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="Krishna TDS Suite", layout="wide")
+st.set_page_config(page_title="TDS Challan Extractor", layout="wide")
 
 # ---------- UI ----------
 st.markdown("""
@@ -26,10 +26,29 @@ font-weight:700;
 color:#38bdf8;
 text-shadow:0 0 20px #38bdf8;
 }
+.quote {
+text-align:center;
+padding:20px;
+background:rgba(56,189,248,0.08);
+border-radius:15px;
+font-size:18px;
+}
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="title">🦚 Krishna TDS Suite</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">🧾 TDS Challan Extractor</div>', unsafe_allow_html=True)
+
+# ---------- KRISHNA QUOTE ----------
+st.markdown("""
+<div class="quote">
+
+🕉️ **योगः कर्मसु कौशलम्**  
+*Yogaḥ karmasu kauśalam*  
+
+"Excellence in action is Yoga." — Lord Krishna
+
+</div>
+""", unsafe_allow_html=True)
 
 # ---------- FILE UPLOAD ----------
 files = st.file_uploader(
@@ -46,7 +65,6 @@ def find(p,t):
 # ---------- EXTRACTION ----------
 def extract(t):
     return {
-        "TAN":find(r"TAN\s*:\s*(\S+)",t),
         "FY":find(r"Financial Year\s*:\s*([\d\-]+)",t),
         "Nature":find(r"Nature of Payment\s*:\s*(\S+)",t),
         "Challan":find(r"Challan No\s*:\s*(\d+)",t),
@@ -130,7 +148,6 @@ if files:
             st.warning(f"⚠️ Total mismatch in {f.name}")
 
         rows.append({
-            "TAN":d["TAN"],
             "Financial Year":d["FY"],
             "TDS Month":tds_month,
             "Deposit Date":d["Date"],
@@ -162,16 +179,10 @@ if files:
 
     st.dataframe(df,use_container_width=True)
 
-    # TAN summary
-    st.subheader("📊 TAN-wise Summary")
-    st.dataframe(
-        df.groupby("TAN")[["Tax","Interest","Total"]].sum()
-    )
-
     st.download_button(
         "📥 Download Excel",
         data=excel(df),
-        file_name="Krishna_TDS_Report.xlsx"
+        file_name="TDS_Report.xlsx"
     )
 
 st.caption("⚙️ Tool developed by Abhishek Jakkula 🦚")
