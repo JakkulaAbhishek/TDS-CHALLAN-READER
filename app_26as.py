@@ -38,18 +38,6 @@ font-size:18px;
 
 st.markdown('<div class="title">🧾 TDS Challan Extractor</div>', unsafe_allow_html=True)
 
-# ---------- KRISHNA QUOTE ----------
-st.markdown("""
-<div class="quote">
-
-🕉️ **यउद्धरेदात्मनात्मानं नात्मानमवसादयेत् । आत्मैव ह्यात्मनो बन्धुरात्मैव रिपुरात्मनः ॥**  
-*uddhared ātmanātmānaṁ nātmānam avasādayet | ātmaiva hyātmano bandhur ātmaiva ripur ātmanaḥ ||*  
-
-"Elevate yourself through the power of your mind, and do not degrade yourself. For the mind can be the friend of the soul, and the mind can also be the enemy of the soul." — Lord Krishna
-
-</div>
-""", unsafe_allow_html=True)
-
 # ---------- FILE UPLOAD ----------
 files = st.file_uploader(
     "📄 Upload TDS Challans",
@@ -63,7 +51,8 @@ def find(p,t):
     return m.group(1).replace(",","") if m else "0"
 
 # ---------- EXTRACTION ----------
-def extract(t):
+def extract_block(t):
+
     return {
         "FY":find(r"Financial Year\s*:\s*([\d\-]+)",t),
         "Nature":find(r"Nature of Payment\s*:\s*(\S+)",t),
@@ -107,62 +96,64 @@ if files:
         with pdfplumber.open(f) as pdf:
             for p in pdf.pages:
                 if p.extract_text():
-                    text+=p.extract_text()
+                    text+=p.extract_text()+"\n"
 
         if not text.strip():
             st.warning(f"OCR needed: {f.name}")
             continue
 
-        d=extract(text)
+        # 🔥 SPLIT MULTIPLE CHALLANS
+        challan_blocks = re.split(r"(?=Challan No\s*:)", text)
 
-        if d["Date"]=="0":
-            continue
+        for block in challan_blocks:
 
-        dep=datetime.strptime(d["Date"],"%d-%b-%Y")
+            d=extract_block(block)
 
-        tax=float(d["Tax"])
-        interest=float(d["Interest"])
+            if d["Date"]=="0":
+                continue
 
-        # Interest-month logic
-        delay_months = math.ceil(
-            interest/(tax*0.015)
-        ) if tax>0 and interest>0 else 1
+            dep=datetime.strptime(d["Date"],"%d-%b-%Y")
 
-        tds_month=(dep-relativedelta(months=delay_months)).strftime("%B")
+            tax=float(d["Tax"])
+            interest=float(d["Interest"])
 
-        # Due date & delay days
-        due=dep.replace(day=7)
-        delay_days=(dep-due).days
+            delay_months = math.ceil(
+                interest/(tax*0.015)
+            ) if tax>0 and interest>0 else 1
 
-        # Validation
-        total_calc=sum([
-            float(d["Tax"]),
-            float(d["Surcharge"]),
-            float(d["Cess"]),
-            float(d["Interest"]),
-            float(d["Penalty"]),
-            float(d["Fee"])
-        ])
+            tds_month=(dep-relativedelta(months=delay_months)).strftime("%B")
 
-        if abs(total_calc-float(d["Total"]))>1:
-            st.warning(f"⚠️ Total mismatch in {f.name}")
+            due=dep.replace(day=7)
+            delay_days=(dep-due).days
 
-        rows.append({
-            "Financial Year":d["FY"],
-            "TDS Month":tds_month,
-            "Deposit Date":d["Date"],
-            "Delay (Days)":delay_days,
-            "Nature":d["Nature"],
-            "Challan No":d["Challan"],
-            "Tax":tax,
-            "Surcharge":float(d["Surcharge"]),
-            "Cess":float(d["Cess"]),
-            "Interest":interest,
-            "Penalty":float(d["Penalty"]),
-            "Fee 234E":float(d["Fee"]),
-            "Total":float(d["Total"]),
-            "Status":"Late ⚠️" if interest>0 else "On Time ✅"
-        })
+            total_calc=sum([
+                float(d["Tax"]),
+                float(d["Surcharge"]),
+                float(d["Cess"]),
+                float(d["Interest"]),
+                float(d["Penalty"]),
+                float(d["Fee"])
+            ])
+
+            if abs(total_calc-float(d["Total"]))>1:
+                st.warning(f"⚠️ Total mismatch in {f.name}")
+
+            rows.append({
+                "Financial Year":d["FY"],
+                "TDS Month":tds_month,
+                "Deposit Date":d["Date"],
+                "Delay (Days)":delay_days,
+                "Nature":d["Nature"],
+                "Challan No":d["Challan"],
+                "Tax":tax,
+                "Surcharge":float(d["Surcharge"]),
+                "Cess":float(d["Cess"]),
+                "Interest":interest,
+                "Penalty":float(d["Penalty"]),
+                "Fee 234E":float(d["Fee"]),
+                "Total":float(d["Total"]),
+                "Status":"Late ⚠️" if interest>0 else "On Time ✅"
+            })
 
         progress.progress((i+1)/len(files))
 
@@ -185,4 +176,4 @@ if files:
         file_name="TDS_Report.xlsx"
     )
 
-st.caption("⚙️ Tool developed by Abhishek Jakkula 🦚")
+st.caption("⚙️ Tool developed by Abhishek Jakkula - ABHISHEKJAKKULA5@GAMIL.COM 🦚")
