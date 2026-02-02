@@ -6,6 +6,7 @@ from io import BytesIO
 from openpyxl.styles import Font
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+import math
 
 # ---------------- UI CONFIG ----------------
 st.set_page_config("🦚 TDS Challan Extractor", layout="wide")
@@ -14,20 +15,22 @@ st.set_page_config("🦚 TDS Challan Extractor", layout="wide")
 st.markdown("""
 <style>
 .stApp {background: linear-gradient(135deg,#020617,#0f172a,#020617); color:white;}
-h1 {text-align:center;font-size:50px;background:linear-gradient(90deg,#38bdf8,#22c55e);
+h1 {text-align:center;font-size:48px;
+background:linear-gradient(90deg,#38bdf8,#22c55e);
 -webkit-background-clip:text;color:transparent;}
-.quote{background:rgba(255,255,255,0.05);padding:20px;border-radius:15px;text-align:center;}
+.quote{background:rgba(255,255,255,0.05);
+padding:20px;border-radius:15px;text-align:center;}
 </style>
 """, unsafe_allow_html=True)
 
 # ----------- TITLE -----------
-st.markdown("<h1>🧾 TDS CHALLAN EXTRACTOR</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🕉️ TDS CHALLAN EXTRACTOR — Guided by Krishna's Wisdom</h1>", unsafe_allow_html=True)
 
 # ----------- LORD KRISHNA QUOTE -----------
 st.markdown("""
 <div class="quote">
 🕉️ कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।  
-"You have the right to perform your duty, not the results." — Lord Krishna
+"You have the right to perform your duty, not the fruits." — Lord Krishna
 </div>
 """, unsafe_allow_html=True)
 
@@ -60,25 +63,39 @@ def extract_all(text):
             return m.group(1).replace(",","") if m else "0"
 
         dep_date_str=f(r"Date of Deposit\s*:\s*(\d{2}-[A-Za-z]{3}-\d{4})")
-
         if dep_date_str=="0":
             continue
 
         dep_date=datetime.strptime(dep_date_str,"%d-%b-%Y")
 
-        # 🔥 TDS MONTH LOGIC
+        # 🔥 TDS MONTH
         tds_month=(dep_date-relativedelta(months=1)).strftime("%B")
+
+        # 🔥 DUE DATE (7th of deposit month)
+        due_date=dep_date.replace(day=7)
+        delay_days=max((dep_date-due_date).days,0)
+
+        tax=float(f(r"A Tax ₹\s*([\d,]+)"))
+        interest=float(f(r"D Interest ₹\s*([\d,]+)"))
+
+        # 🔥 EFFECTIVE MONTH (Interest logic)
+        eff_month=""
+        if interest>0 and tax>0:
+            months_delay=math.ceil(interest/(tax*0.015))
+            eff_month=(dep_date-relativedelta(months=months_delay)).strftime("%B")
 
         rows.append({
             "Financial Year":f(r"Financial Year\s*:\s*([\d\-]+)"),
             "TDS Month":tds_month,
             "Deposit Date":dep_date_str,
+            "Delay (Days)":delay_days,
+            "TDS Effective Month":eff_month,
             "Nature":f(r"Nature of Payment\s*:\s*(\w+)"),
             "Challan No":f(r"Challan No\s*:\s*(\d+)"),
-            "Tax":float(f(r"A Tax ₹\s*([\d,]+)")),
+            "Tax":tax,
             "Surcharge":float(f(r"B Surcharge ₹\s*([\d,]+)")),
             "Cess":float(f(r"C Cess ₹\s*([\d,]+)")),
-            "Interest":float(f(r"D Interest ₹\s*([\d,]+)")),
+            "Interest":interest,
             "Penalty":float(f(r"E Penalty ₹\s*([\d,]+)")),
             "Fee 234E":float(f(r"F Fee under section 234E ₹\s*([\d,]+)")),
             "Total":float(f(r"Total \(A\+B\+C\+D\+E\+F\) ₹\s*([\d,]+)"))
