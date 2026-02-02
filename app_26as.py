@@ -7,97 +7,116 @@ from dateutil.relativedelta import relativedelta
 from io import BytesIO
 import os
 
-# ---------- SAFE OPENAI SETUP ----------
-api_key = None
+# ---------- SAFE AI SETUP ----------
+api_key = st.secrets.get("OPENAI_API_KEY", None) if hasattr(st,"secrets") else None
+client=None
 
-if "OPENAI_API_KEY" in st.secrets:
-    api_key = st.secrets["OPENAI_API_KEY"]
-elif os.getenv("OPENAI_API_KEY"):
-    api_key = os.getenv("OPENAI_API_KEY")
-
-client = None
 if api_key:
     from openai import OpenAI
-    client = OpenAI(api_key=api_key)
+    client=OpenAI(api_key=api_key)
 
 # ---------- PAGE CONFIG ----------
-st.set_page_config(
-    page_title="TDS Divine AI Suite",
-    page_icon="🦚",
-    layout="wide"
-)
+st.set_page_config(layout="wide",page_title="TDS Krishna Suite")
 
-# ---------- BEAUTIFUL UI ----------
+# ---------- PREMIUM UI ----------
 st.markdown("""
 <style>
+
 .stApp {
-background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+background: radial-gradient(circle at top,#0f172a,#020617);
 color:white;
+font-family: 'Segoe UI';
 }
 
+/* Title */
 .title {
 text-align:center;
-font-size:46px;
-font-weight:bold;
-background: linear-gradient(45deg,gold,white);
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
+font-size:52px;
+font-weight:700;
+background:linear-gradient(90deg,#facc15,#fde68a);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+margin-bottom:10px;
 }
 
+/* Krishna card */
+.krishna {
+text-align:center;
+padding:20px;
+border-radius:20px;
+background:rgba(255,215,0,0.08);
+border:1px solid rgba(255,215,0,0.3);
+box-shadow:0 0 30px rgba(255,215,0,0.2);
+}
+
+/* Glass container */
 .glass {
-background: rgba(255,255,255,0.1);
+background:rgba(255,255,255,0.05);
 padding:25px;
 border-radius:18px;
-backdrop-filter: blur(15px);
-box-shadow: 0 0 40px rgba(255,215,0,0.3);
+box-shadow:0 0 40px rgba(0,0,0,0.6);
 }
+
+/* Hide default uploader text */
+[data-testid="stFileUploader"] {
+background: rgba(255,215,0,0.05);
+padding:20px;
+border-radius:15px;
+border:1px dashed gold;
+}
+
+footer {visibility:hidden;}
+
 </style>
-""", unsafe_allow_html=True)
+""",unsafe_allow_html=True)
 
-st.markdown('<div class="title">🦚 TDS Divine AI Suite</div>', unsafe_allow_html=True)
+# ---------- HEADER ----------
+st.markdown('<div class="title">🦚 TDS Krishna AI Suite</div>',unsafe_allow_html=True)
 
-# ---------- KRISHNA SHLOKA ----------
+# ---------- KRISHNA SLOKA ----------
 st.markdown("""
+<div class="krishna">
+
 🕉️ **कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।**  
 **मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥**
 
-*"You have a right to perform your duty, not to the fruits."*
-""")
+*"Focus on duty, not results." – Lord Krishna*
 
-# ---------- AI ASSISTANT ----------
-st.sidebar.title("🤖 Krishna AI Assistant")
+</div>
+""",unsafe_allow_html=True)
 
-if not api_key:
-    st.sidebar.warning("Add OPENAI_API_KEY in Streamlit Secrets to enable AI")
+st.write("")
 
-if "chat" not in st.session_state:
-    st.session_state.chat=[]
+# ---------- AI CHAT ----------
+st.sidebar.title("🦚 Krishna AI")
 
-msg = st.sidebar.chat_input("Ask tax doubt...")
+if client is None:
+    st.sidebar.info("Add API key to enable AI")
 
-if msg and client:
-    st.session_state.chat.append(("user",msg))
+if "msgs" not in st.session_state:
+    st.session_state.msgs=[]
 
-    res = client.chat.completions.create(
+prompt=st.sidebar.chat_input("Ask tax doubt...")
+
+if prompt and client:
+    st.session_state.msgs.append(("user",prompt))
+
+    res=client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role":"user","content":msg}]
+        messages=[{"role":"user","content":prompt}]
     )
 
-    reply = res.choices[0].message.content
-    st.session_state.chat.append(("assistant",reply))
+    reply=res.choices[0].message.content
+    st.session_state.msgs.append(("assistant",reply))
 
-for r,m in st.session_state.chat:
+for r,m in st.session_state.msgs:
     with st.sidebar.chat_message(r):
         st.write(m)
 
 # ---------- PARSER ----------
-st.markdown('<div class="glass">', unsafe_allow_html=True)
+st.markdown('<div class="glass">',unsafe_allow_html=True)
 
-files = st.file_uploader(
-    "📄 Upload TDS Challans",
-    type="pdf",
-    accept_multiple_files=True
-)
+files=st.file_uploader("📄 Upload TDS Challans",type="pdf",accept_multiple_files=True)
 
 def find(p,t):
     m=re.search(p,t)
@@ -149,7 +168,6 @@ if files:
         interest=float(d["Interest"])
 
         delay=round(interest/(tax*0.015)) if tax>0 and interest>0 else 1
-
         tds_month=(dep-relativedelta(months=delay)).strftime("%B")
 
         rows.append({
@@ -172,16 +190,11 @@ if files:
 
     df=pd.DataFrame(rows)
 
-    st.success("✅ Challans Processed")
     st.dataframe(df,use_container_width=True)
 
-    st.download_button(
-        "📥 Download Excel",
-        data=excel(df),
-        file_name="TDS_AI_Report.xlsx"
-    )
+    st.download_button("📥 Download Excel",data=excel(df))
 
-st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('</div>',unsafe_allow_html=True)
 
-st.markdown("---")
-st.write("⚙️ Tool developed by Abhishek Jakkula")
+st.write("")
+st.caption("⚙️ Tool developed by Abhishek Jakkula")
