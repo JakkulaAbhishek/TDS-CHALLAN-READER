@@ -5,9 +5,9 @@ import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from io import BytesIO
-import os
+import time
 
-# ---------- SAFE OPENAI SETUP ----------
+# ---------- SAFE AI SETUP ----------
 api_key = st.secrets.get("OPENAI_API_KEY", None) if hasattr(st,"secrets") else None
 
 client=None
@@ -15,112 +15,128 @@ if api_key:
     from openai import OpenAI
     client = OpenAI(api_key=api_key)
 
-# ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="Krishna TDS Suite",layout="wide")
+# ---------- PAGE ----------
+st.set_page_config(layout="wide", page_title="TDS Challans Extractor")
 
-# ---------- ULTRA UI ----------
+# ---------- UI ----------
 st.markdown("""
 <style>
 
 .stApp {
-background: radial-gradient(circle at top,#0b1d3a,#020617);
+background: linear-gradient(180deg,#020617,#0b1d3a,#020617);
 color:white;
-font-family:'Segoe UI';
+font-family: 'Segoe UI';
 }
 
 /* Title */
 .title {
 text-align:center;
-font-size:54px;
-font-weight:800;
-background:linear-gradient(90deg,#facc15,#fde68a,#facc15);
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-text-shadow:0 0 20px rgba(250,204,21,0.6);
+font-size:50px;
+font-weight:700;
+color:#38bdf8;
+animation: glow 3s infinite alternate;
 }
 
-/* Krishna glow card */
+@keyframes glow {
+0% {text-shadow:0 0 10px #38bdf8;}
+100% {text-shadow:0 0 30px #38bdf8;}
+}
+
+/* Krishna aura card */
 .krishna {
 text-align:center;
 padding:25px;
-border-radius:20px;
-background:rgba(255,215,0,0.08);
-border:1px solid rgba(255,215,0,0.4);
-box-shadow:0 0 50px rgba(255,215,0,0.25);
-}
-
-/* Glass effect */
-.glass {
-background:rgba(255,255,255,0.06);
-padding:25px;
 border-radius:18px;
-box-shadow:0 0 30px rgba(0,0,0,0.8);
+background:rgba(56,189,248,0.08);
+border:1px solid rgba(56,189,248,0.4);
+box-shadow:0 0 40px rgba(56,189,248,0.3);
+animation: fade 2s ease-in;
 }
 
-/* Upload box */
+@keyframes fade {
+from {opacity:0; transform:translateY(20px);}
+to {opacity:1;}
+}
+
+/* Glass */
+.glass {
+background:rgba(255,255,255,0.05);
+padding:25px;
+border-radius:15px;
+}
+
+/* Upload */
 [data-testid="stFileUploader"] {
-background:rgba(250,204,21,0.08);
+background:rgba(56,189,248,0.05);
 padding:20px;
 border-radius:15px;
-border:1px dashed gold;
+border:1px dashed #38bdf8;
 }
 
 footer {visibility:hidden;}
 
 </style>
-""",unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # ---------- HEADER ----------
-st.markdown('<div class="title">🦚 Krishna TDS Divine Suite</div>',unsafe_allow_html=True)
+st.markdown('<div class="title">🦚 Krishna TDS Divine Suite</div>', unsafe_allow_html=True)
 
-# ---------- KRISHNA SLOKA ----------
+# ---------- KRISHNA ANIMATION ----------
+placeholder = st.empty()
+
+for aura in ["🦚","✨🦚✨","🦚"]:
+    placeholder.markdown(
+        f"<h3 style='text-align:center;color:#38bdf8'>{aura} Divine Compliance {aura}</h3>",
+        unsafe_allow_html=True
+    )
+    time.sleep(0.6)
+
+# ---------- SLOKA ----------
 st.markdown("""
 <div class="krishna">
 
 🕉️ कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।  
 मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥
 
-*"Do your duty without attachment to results."*
+*"You have a right to perform your duty, not the fruits."*
 
 </div>
-""",unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 st.write("")
 
-# ---------- AI CHAT ----------
+# ---------- CHAT ----------
 st.sidebar.title("🦚 Krishna AI")
 
 if "chat" not in st.session_state:
     st.session_state.chat=[]
 
-user_msg = st.sidebar.chat_input("Ask tax doubt...")
+msg = st.sidebar.chat_input("Ask tax doubt...")
 
-if user_msg:
+if msg:
     if client is None:
-        st.sidebar.warning("AI disabled. Add API key in Secrets.")
+        st.sidebar.warning("Add API key in Secrets to enable AI")
     else:
-        st.session_state.chat.append(("user",user_msg))
+        st.session_state.chat.append(("user",msg))
 
         try:
             res = client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[{"role":"user","content":user_msg}]
+                messages=[{"role":"user","content":msg}]
             )
-
-            reply = res.choices[0].message.content
+            reply=res.choices[0].message.content
             st.session_state.chat.append(("assistant",reply))
+        except:
+            st.sidebar.error("API issue. Check key.")
 
-        except Exception:
-            st.sidebar.error("AI error. Check API key.")
-
-for role,msg in st.session_state.chat:
+for role,text in st.session_state.chat:
     with st.sidebar.chat_message(role):
-        st.write(msg)
+        st.write(text)
 
 # ---------- PARSER ----------
-st.markdown('<div class="glass">',unsafe_allow_html=True)
+st.markdown('<div class="glass">', unsafe_allow_html=True)
 
-files = st.file_uploader("📄 Upload TDS Challans",type="pdf",accept_multiple_files=True)
+files=st.file_uploader("📄 Upload TDS Challans",type="pdf",accept_multiple_files=True)
 
 def find(p,t):
     m=re.search(p,t)
@@ -193,9 +209,7 @@ if files:
         s+=1
 
     df=pd.DataFrame(rows)
-
     st.dataframe(df,use_container_width=True)
-
     st.download_button("📥 Download Excel",data=excel(df))
 
 st.markdown('</div>',unsafe_allow_html=True)
