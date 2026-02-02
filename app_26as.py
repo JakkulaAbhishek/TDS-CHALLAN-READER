@@ -8,22 +8,40 @@ from dateutil.relativedelta import relativedelta
 from io import BytesIO
 from openpyxl.styles import Font
 
+# ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="TDS Challan Extractor", layout="wide")
 
-files = st.file_uploader("Upload Challans", type="pdf", accept_multiple_files=True)
+# ---------- LORD KRISHNA QUOTE ----------
+st.markdown("""
+### 🕉️ Bhagavad Gita Wisdom
 
+**यउद्धरेदात्मनात्मानं नात्मानमवसादयेत् ।  
+आत्मैव ह्यात्मनो बन्धुरात्मैव रिपुरात्मनः ॥**
+
+*“Elevate yourself through your mind.  
+The mind can be your best friend or your worst enemy.”* — Lord Krishna
+""")
+
+# ---------- FILE UPLOAD ----------
+files = st.file_uploader(
+    "📄 Upload TDS Challans",
+    type="pdf",
+    accept_multiple_files=True
+)
+
+# ---------- REGEX HELPER ----------
 def find(p,t):
     m=re.search(p,t,re.S)
     return m.group(1).replace(",","").strip() if m else "0"
 
-# --------- STRONG CHALLAN PATTERN ----------
+# ---------- CHALLAN BLOCK PATTERN ----------
 CHALLAN_PATTERN = re.compile(
-    r"(Challan No\s*:.*?Total \(A\+B\+C\+D\+E\+F\).*?\d+)",
+    r"(Challan No\s*:.*?Total.*?\d+)",
     re.S
 )
 
+# ---------- EXTRACTION ----------
 def extract_block(t):
-
     return {
         "FY":find(r"Financial Year\s*:\s*([\d\-]+)",t),
         "Nature":find(r"Nature of Payment\s*:\s*([A-Za-z0-9]+)",t),
@@ -39,16 +57,23 @@ def extract_block(t):
         "Total":find(r"Total.*?₹\s*([\d,]+)",t)
     }
 
+# ---------- EXCEL EXPORT ----------
 def excel(df):
     buf=BytesIO()
     with pd.ExcelWriter(buf,engine="openpyxl") as writer:
-        df.to_excel(writer,index=False)
-        ws=writer.active
+        df.to_excel(writer,index=False,sheet_name="TDS Data")
+        ws = writer.sheets["TDS Data"]
+
         for cell in ws[1]:
-            cell.font=Font(bold=True)
+            cell.font = Font(bold=True)
+
+        for col in ws.columns:
+            max_len=max(len(str(c.value)) for c in col)
+            ws.column_dimensions[col[0].column_letter].width=max_len+2
+
     return buf.getvalue()
 
-# -------- PROCESS ----------
+# ---------- PROCESS ----------
 if files:
 
     rows=[]
@@ -61,7 +86,6 @@ if files:
                 if p.extract_text():
                     text+=p.extract_text()+"\n"
 
-        # 🔥 Extract each challan properly
         challans = CHALLAN_PATTERN.findall(text)
 
         for ch in challans:
@@ -76,16 +100,14 @@ if files:
             tax=float(d["Tax"])
             interest=float(d["Interest"])
 
-            # Interest months
             delay_months = math.ceil(
                 interest/(tax*0.015)
             ) if tax>0 and interest>0 else 0
 
             tds_month=(dep-relativedelta(months=delay_months)).strftime("%B")
 
-            # ✅ Correct due date = 7th of NEXT month
+            # Due date = 7th next month
             due=(dep.replace(day=1)+relativedelta(months=1)).replace(day=7)
-
             delay_days=max((dep-due).days,0)
 
             rows.append({
@@ -95,7 +117,7 @@ if files:
                 "Delay (Days)":delay_days,
                 "Nature":d["Nature"],
                 "Challan No":d["Challan"],
-                "Tax":float(d["Tax"]),
+                "Tax":tax,
                 "Surcharge":float(d["Surcharge"]),
                 "Cess":float(d["Cess"]),
                 "Interest":interest,
@@ -105,14 +127,21 @@ if files:
                 "Status":"Late ⚠️" if interest>0 else "On Time ✅"
             })
 
-    df=pd.DataFrame(rows)
+    if rows:
 
-    st.dataframe(df,use_container_width=True)
+        df=pd.DataFrame(rows)
 
-    st.download_button(
-        "Download Excel",
-        data=excel(df),
-        file_name="TDS_Report.xlsx"
-    )
+        st.success("✅ Extraction Complete")
 
-st.caption("Tool developed by Abhishek Jakkula - ABHISHEKJAKKULA5@GMAIL.COM")
+        st.dataframe(df,use_container_width=True)
+
+        st.download_button(
+            "📥 Download Excel",
+            data=excel(df),
+            file_name="TDS_Report.xlsx"
+        )
+
+    else:
+        st.warning("No challans detected")
+
+st.caption("⚙️ Tool developed by Abhishek Jakkula - ABHISHEKJAKKULA5@GMAIL.COM 🦚")
