@@ -29,8 +29,10 @@ st.markdown("<h1>🕉️ TDS CHALLAN EXTRACTOR</h1>", unsafe_allow_html=True)
 # ----------- KRISHNA QUOTE -----------
 st.markdown("""
 <div class="quote">
-कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।  
-"You have the right to perform your duty, not the fruits." — Lord Krishna
+उद्धरेदात्मनाऽत्मानं नात्मानमवसादयेत्।
+आत्मैव ह्यात्मनो बन्धुरात्मैव रिपुरात्मनः॥ 
+"One must elevate oneself by one’s own mind,not degrade oneself.
+The mind can be the friend of the self, and the mind can also be the enemy." — Lord Krishna
 </div>
 """, unsafe_allow_html=True)
 
