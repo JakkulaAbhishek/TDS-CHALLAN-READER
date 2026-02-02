@@ -88,6 +88,9 @@ def extract_all(text):
         else:
             eff_month = tds_month
 
+        # -------- STATUS --------
+        status = "On Time ✅" if delay_days <= 0 else "Late ⚠️"
+
         rows.append({
             "Financial Year":f(r"Financial Year\s*:\s*([\d\-]+)"),
             "TDS Month":tds_month,
@@ -102,7 +105,8 @@ def extract_all(text):
             "Interest":interest,
             "Penalty":float(f(r"E Penalty ₹\s*([\d,]+)")),
             "Fee 234E":float(f(r"F Fee under section 234E ₹\s*([\d,]+)")),
-            "Total":float(f(r"Total \(A\+B\+C\+D\+E\+F\) ₹\s*([\d,]+)"))
+            "Total":float(f(r"Total \(A\+B\+C\+D\+E\+F\) ₹\s*([\d,]+)")),
+            "Status":status
         })
 
     return rows
