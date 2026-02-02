@@ -3,6 +3,7 @@ import pdfplumber
 import re
 import pandas as pd
 import math
+import time
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from io import BytesIO
@@ -11,63 +12,66 @@ from openpyxl.styles import Font
 # ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="TDS Challan Extractor", layout="wide")
 
-# ---------- GOOGLE STYLE UI ----------
+# ---------- LUXURY GLASSMORPHISM UI ----------
 st.markdown("""
 <style>
 
 .stApp {
-background:#f6f8fc;
-font-family:'Inter',sans-serif;
-color:#202124 !important;
-}
-
-/* Force dark text everywhere */
-html, body, [class*="css"] {
-color:#202124 !important;
+background: linear-gradient(135deg,#e3f2fd,#ffffff,#e3f2fd);
+font-family:'Segoe UI',sans-serif;
+color:#1f2937;
 }
 
 /* Header */
 .header {
 text-align:center;
-font-size:42px;
-font-weight:700;
-color:#1a73e8;
+font-size:46px;
+font-weight:800;
+background:linear-gradient(90deg,#1a73e8,#00c6ff);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
 }
 
-/* Quote Card */
-.quote {
+/* Glass card */
+.glass {
+background: rgba(255,255,255,0.55);
+backdrop-filter: blur(14px);
+padding:22px;
+border-radius:16px;
+box-shadow:0 8px 32px rgba(31,38,135,0.2);
+margin-bottom:20px;
+}
+
+/* Metric cards */
+.metric {
+background:linear-gradient(135deg,#1a73e8,#42a5f5);
+padding:20px;
+border-radius:14px;
+color:white;
 text-align:center;
-padding:18px;
-background:white;
-border-radius:12px;
-box-shadow:0 4px 20px rgba(0,0,0,0.08);
-margin-bottom:25px;
-color:#202124;
+box-shadow:0 6px 18px rgba(0,0,0,0.15);
 }
 
-/* Animated Button */
+/* Upload */
+[data-testid="stFileUploader"] {
+background: rgba(255,255,255,0.6);
+backdrop-filter: blur(10px);
+padding:20px;
+border-radius:14px;
+}
+
+/* Button */
 .stDownloadButton button {
-background:#1a73e8;
+background:linear-gradient(90deg,#1a73e8,#42a5f5);
 color:white;
 border:none;
 padding:12px 22px;
-border-radius:8px;
+border-radius:10px;
 font-size:16px;
 transition:0.3s;
 }
 .stDownloadButton button:hover {
-transform:scale(1.08);
-background:#1558c0;
-}
-
-/* Upload box */
-[data-testid="stFileUploader"] {
-background:white;
-padding:20px;
-border-radius:12px;
-border:1px solid #e0e3eb;
-box-shadow:0 4px 15px rgba(0,0,0,0.05);
-color:#202124;
+transform:scale(1.07);
 }
 
 footer {visibility:hidden;}
@@ -80,10 +84,10 @@ st.markdown('<div class="header">🧾 TDS Challan Extractor</div>', unsafe_allow
 
 # ---------- KRISHNA QUOTE ----------
 st.markdown("""
-<div class="quote">
+<div class="glass" style="text-align:center">
 
-🕉️ <b>कर्मण्येवाधिकारस्ते मा फलेषु कदाचन</b><br>
-<i>You have the right to perform your duty, but not to the results — Lord Krishna</i>
+🕉️ <b>नियतं कुरु कर्म त्वं कर्म ज्यायो ह्यकर्मणः</b><br>
+<i>Perform your duty, for action is superior to inaction — Lord Krishna</i>
 
 </div>
 """, unsafe_allow_html=True)
@@ -121,10 +125,6 @@ def excel(df):
         for cell in ws[1]:
             cell.font=Font(bold=True)
 
-        for col in ws.columns:
-            max_len=max(len(str(c.value)) for c in col)
-            ws.column_dimensions[col[0].column_letter].width=max_len+2
-
     return buf.getvalue()
 
 # ---------- PROCESS ----------
@@ -156,14 +156,10 @@ if files:
         delay_months=math.ceil(interest/(tax*0.015)) if tax>0 and interest>0 else 1
         tds_month=(dep-relativedelta(months=delay_months)).strftime("%B")
 
-        due=dep.replace(day=7)
-        delay_days=(dep-due).days
-
         rows.append({
-            "Financial Year":d["FY"],
+            "FY":d["FY"],
             "TDS Month":tds_month,
             "Deposit Date":d["Date"],
-            "Delay Days":delay_days,
             "Nature":d["Nature"],
             "Challan No":d["Challan"],
             "Tax":tax,
@@ -178,20 +174,24 @@ if files:
 
     st.success("✅ Processing Complete")
 
-    # ---------- METRICS ----------
+    # ---------- ANIMATED METRICS ----------
     c1,c2,c3,c4=st.columns(4)
-    c1.metric("Challans",len(df))
-    c2.metric("Total Tax",f"₹ {df['Tax'].sum():,.0f}")
-    c3.metric("Total Interest",f"₹ {df['Interest'].sum():,.0f}")
-    c4.metric("Late Cases",(df["Interest"]>0).sum())
+
+    def animate_metric(col,label,value):
+        for i in range(0,value+1,max(1,value//30 or 1)):
+            col.markdown(f'<div class="metric"><h4>{label}</h4><h2>{i}</h2></div>',unsafe_allow_html=True)
+            time.sleep(0.01)
+        col.markdown(f'<div class="metric"><h4>{label}</h4><h2>{value}</h2></div>',unsafe_allow_html=True)
+
+    animate_metric(c1,"Challans",len(df))
+    animate_metric(c2,"Late Cases",(df["Interest"]>0).sum())
+    animate_metric(c3,"Total Tax ₹",int(df["Tax"].sum()))
+    animate_metric(c4,"Interest ₹",int(df["Interest"].sum()))
 
     # ---------- TABLE ----------
+    st.markdown('<div class="glass">',unsafe_allow_html=True)
     st.dataframe(df,use_container_width=True)
-
-    # ---------- CHARTS ----------
-    st.subheader("📊 Analytics Dashboard")
-    st.bar_chart(df[["Tax","Interest"]])
-    st.bar_chart(df["Status"].value_counts())
+    st.markdown('</div>',unsafe_allow_html=True)
 
     # ---------- DOWNLOAD ----------
     st.download_button(
