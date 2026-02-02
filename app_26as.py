@@ -8,89 +8,52 @@ from dateutil.relativedelta import relativedelta
 from io import BytesIO
 from openpyxl.styles import Font
 
-# ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="TDS Challan Extractor", layout="wide")
 
-# ---------- UI ----------
-st.markdown("""
-<style>
-.stApp {
-background: linear-gradient(180deg,#020617,#0b1d3a,#020617);
-color:white;
-font-family:Segoe UI;
-}
-.title {
-text-align:center;
-font-size:48px;
-font-weight:700;
-color:#38bdf8;
-text-shadow:0 0 20px #38bdf8;
-}
-.quote {
-text-align:center;
-padding:20px;
-background:rgba(56,189,248,0.08);
-border-radius:15px;
-font-size:18px;
-}
-</style>
-""", unsafe_allow_html=True)
+files = st.file_uploader("Upload Challans", type="pdf", accept_multiple_files=True)
 
-st.markdown('<div class="title">🧾 TDS Challan Extractor</div>', unsafe_allow_html=True)
+def find(p,t):
+    m=re.search(p,t,re.S)
+    return m.group(1).replace(",","").strip() if m else "0"
 
-# ---------- FILE UPLOAD ----------
-files = st.file_uploader(
-    "📄 Upload TDS Challans",
-    type="pdf",
-    accept_multiple_files=True
+# --------- STRONG CHALLAN PATTERN ----------
+CHALLAN_PATTERN = re.compile(
+    r"(Challan No\s*:.*?Total \(A\+B\+C\+D\+E\+F\).*?\d+)",
+    re.S
 )
 
-# ---------- REGEX HELPER ----------
-def find(p,t):
-    m=re.search(p,t)
-    return m.group(1).replace(",","") if m else "0"
-
-# ---------- EXTRACTION ----------
 def extract_block(t):
 
     return {
         "FY":find(r"Financial Year\s*:\s*([\d\-]+)",t),
-        "Nature":find(r"Nature of Payment\s*:\s*(\S+)",t),
+        "Nature":find(r"Nature of Payment\s*:\s*([A-Za-z0-9]+)",t),
         "Challan":find(r"Challan No\s*:\s*(\d+)",t),
         "Date":find(r"Date of Deposit\s*:\s*(\d{2}-[A-Za-z]{3}-\d{4})",t),
 
-        "Tax":find(r"A Tax ₹\s*([\d,]+)",t),
-        "Surcharge":find(r"B Surcharge ₹\s*([\d,]+)",t),
-        "Cess":find(r"C Cess ₹\s*([\d,]+)",t),
-        "Interest":find(r"D Interest ₹\s*([\d,]+)",t),
-        "Penalty":find(r"E Penalty ₹\s*([\d,]+)",t),
-        "Fee":find(r"F Fee under section 234E ₹\s*([\d,]+)",t),
-        "Total":find(r"Total \(A\+B\+C\+D\+E\+F\) ₹\s*([\d,]+)",t)
+        "Tax":find(r"A Tax.*?₹\s*([\d,]+)",t),
+        "Surcharge":find(r"B Surcharge.*?₹\s*([\d,]+)",t),
+        "Cess":find(r"C Cess.*?₹\s*([\d,]+)",t),
+        "Interest":find(r"D Interest.*?₹\s*([\d,]+)",t),
+        "Penalty":find(r"E Penalty.*?₹\s*([\d,]+)",t),
+        "Fee":find(r"F Fee.*?₹\s*([\d,]+)",t),
+        "Total":find(r"Total.*?₹\s*([\d,]+)",t)
     }
 
-# ---------- EXCEL EXPORT ----------
 def excel(df):
     buf=BytesIO()
     with pd.ExcelWriter(buf,engine="openpyxl") as writer:
-        df.to_excel(writer,index=False,sheet_name="TDS Data")
-        ws=writer.sheets["TDS Data"]
-
+        df.to_excel(writer,index=False)
+        ws=writer.active
         for cell in ws[1]:
             cell.font=Font(bold=True)
-
-        for col in ws.columns:
-            max_len=max(len(str(c.value)) for c in col)
-            ws.column_dimensions[col[0].column_letter].width=max_len+2
-
     return buf.getvalue()
 
-# ---------- PROCESS ----------
+# -------- PROCESS ----------
 if files:
 
     rows=[]
-    progress=st.progress(0)
 
-    for i,f in enumerate(files):
+    for f in files:
 
         text=""
         with pdfplumber.open(f) as pdf:
@@ -98,16 +61,12 @@ if files:
                 if p.extract_text():
                     text+=p.extract_text()+"\n"
 
-        if not text.strip():
-            st.warning(f"OCR needed: {f.name}")
-            continue
+        # 🔥 Extract each challan properly
+        challans = CHALLAN_PATTERN.findall(text)
 
-        # 🔥 SPLIT MULTIPLE CHALLANS
-        challan_blocks = re.split(r"(?=Challan No\s*:)", text)
+        for ch in challans:
 
-        for block in challan_blocks:
-
-            d=extract_block(block)
+            d=extract_block(ch)
 
             if d["Date"]=="0":
                 continue
@@ -117,26 +76,17 @@ if files:
             tax=float(d["Tax"])
             interest=float(d["Interest"])
 
+            # Interest months
             delay_months = math.ceil(
                 interest/(tax*0.015)
-            ) if tax>0 and interest>0 else 1
+            ) if tax>0 and interest>0 else 0
 
             tds_month=(dep-relativedelta(months=delay_months)).strftime("%B")
 
-            due=dep.replace(day=7)
-            delay_days=(dep-due).days
+            # ✅ Correct due date = 7th of NEXT month
+            due=(dep.replace(day=1)+relativedelta(months=1)).replace(day=7)
 
-            total_calc=sum([
-                float(d["Tax"]),
-                float(d["Surcharge"]),
-                float(d["Cess"]),
-                float(d["Interest"]),
-                float(d["Penalty"]),
-                float(d["Fee"])
-            ])
-
-            if abs(total_calc-float(d["Total"]))>1:
-                st.warning(f"⚠️ Total mismatch in {f.name}")
+            delay_days=max((dep-due).days,0)
 
             rows.append({
                 "Financial Year":d["FY"],
@@ -145,7 +95,7 @@ if files:
                 "Delay (Days)":delay_days,
                 "Nature":d["Nature"],
                 "Challan No":d["Challan"],
-                "Tax":tax,
+                "Tax":float(d["Tax"]),
                 "Surcharge":float(d["Surcharge"]),
                 "Cess":float(d["Cess"]),
                 "Interest":interest,
@@ -155,25 +105,14 @@ if files:
                 "Status":"Late ⚠️" if interest>0 else "On Time ✅"
             })
 
-        progress.progress((i+1)/len(files))
-
     df=pd.DataFrame(rows)
-
-    # ---------- DASHBOARD ----------
-    st.success("✅ Processing Complete")
-
-    c1,c2,c3,c4=st.columns(4)
-    c1.metric("Challans",len(df))
-    c2.metric("Total Tax",f"₹ {df['Tax'].sum():,.0f}")
-    c3.metric("Total Interest",f"₹ {df['Interest'].sum():,.0f}")
-    c4.metric("Late Cases",(df["Interest"]>0).sum())
 
     st.dataframe(df,use_container_width=True)
 
     st.download_button(
-        "📥 Download Excel",
+        "Download Excel",
         data=excel(df),
         file_name="TDS_Report.xlsx"
     )
 
-st.caption("⚙️ Tool developed by Abhishek Jakkula - ABHISHEKJAKKULA5@GAMIL.COM 🦚")
+st.caption("Tool developed by Abhishek Jakkula - ABHISHEKJAKKULA5@GMAIL.COM")
