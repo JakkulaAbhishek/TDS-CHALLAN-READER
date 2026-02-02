@@ -7,7 +7,7 @@ from openpyxl.styles import Font
 from datetime import datetime
 
 # ---------------- UI CONFIG ----------------
-st.set_page_config("TDS Challan Extractor", layout="wide")
+st.set_page_config("🦚 TDS Challan Extractor", layout="wide")
 
 # ----------- ANIMATED CSS -----------
 st.markdown("""
@@ -126,7 +126,7 @@ if files:
 
         df=pd.DataFrame(all_rows)
 
-        st.success("✅ Challans Extracted Successfully!")
+        st.success("🦚 Challans Extracted Successfully!")
 
         c1,c2,c3=st.columns(3)
         c1.metric("Total Challans",len(df))
@@ -145,4 +145,4 @@ if files:
         st.warning("⚠️ No challans detected. Try another file.")
 
 # ----------- FOOTER -----------
-st.caption("⚙️ Tool developed by Abhishek Jakkula - ABHISHEKJAKKULA5@GMAIL.COM 🦚")
+st.caption("⚙️ Tool developed by Abhishek Jakkula - jakkulaabhishek5@gmail.com 🦚")
