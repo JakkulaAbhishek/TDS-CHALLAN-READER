@@ -185,4 +185,4 @@ if files:
         file_name="TDS_Report.xlsx"
     )
 
-st.caption("⚙️ Tool developed by Abhishek Jakkula 🦚  "mail" - "jakkulaabhishek5@gmail.com")
+st.caption("⚙️ Tool developed by Abhishek Jakkula 🦚")
