@@ -42,10 +42,10 @@ st.markdown('<div class="title">🧾 TDS Challan Extractor</div>', unsafe_allow_
 st.markdown("""
 <div class="quote">
 
-🕉️ **योगः कर्मसु कौशलम्**  
-*Yogaḥ karmasu kauśalam*  
+🕉️ **यउद्धरेदात्मनात्मानं नात्मानमवसादयेत् । आत्मैव ह्यात्मनो बन्धुरात्मैव रिपुरात्मनः ॥**  
+*uddhared ātmanātmānaṁ nātmānam avasādayet | ātmaiva hyātmano bandhur ātmaiva ripur ātmanaḥ ||*  
 
-"Excellence in action is Yoga." — Lord Krishna
+"Elevate yourself through the power of your mind, and do not degrade yourself. For the mind can be the friend of the soul, and the mind can also be the enemy of the soul." — Lord Krishna
 
 </div>
 """, unsafe_allow_html=True)
