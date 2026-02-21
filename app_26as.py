@@ -44,16 +44,16 @@ st.markdown("""
 # ----------- HEADER -----------
 st.markdown('<div class="header-title">🕉️ TDS CHALLAN AI AUDITOR</div>', unsafe_allow_html=True)
 
-# ----------- ENHANCED MAPPING -----------
-SECTION_MAP = {
-    "94C": "194C - Contractor (1%/2%)",
-    "94J": "194J - Professional (10%)",
-    "194JB": "194JB - Prof. Special (2%)",
-    "94I": "194I - Rent (10%)",
-    "94H": "194H - Commission (5%)",
-    "92B": "192 - Salary (Slab)",
-    "94Q": "194Q - Goods (0.1%)",
-    "94A": "194A - Interest (10%)"
+# ----------- IT ACT 2026 STATUTORY RATES -----------
+SECTION_DATA = {
+    "94C": {"desc": "194C - Contractor", "rate": 1.0}, # General/Indv rate
+    "94J": {"desc": "194J - Professional", "rate": 10.0},
+    "194JB": {"desc": "194JB - Prof. Special", "rate": 2.0},
+    "94I": {"desc": "194I - Rent", "rate": 10.0},
+    "94H": {"desc": "194H - Commission", "rate": 5.0},
+    "92B": {"desc": "192 - Salary", "rate": 0.0}, # Variable
+    "94Q": {"desc": "194Q - Goods", "rate": 0.1},
+    "94A": {"desc": "194A - Interest", "rate": 10.0}
 }
 
 # ----------- FILE UPLOAD -----------
@@ -68,7 +68,6 @@ def to_excel(df):
         df.to_excel(writer, index=False, sheet_name="TDS_Audit")
         ws = writer.sheets["TDS_Audit"]
         
-        # Header Styling
         header_fill = PatternFill(start_color="1e293b", end_color="1e293b", fill_type="solid")
         header_font = Font(bold=True, color="FFFFFF")
         
@@ -77,31 +76,26 @@ def to_excel(df):
             cell.fill = header_fill
             cell.alignment = Alignment(horizontal="center")
         
-        # Auto-Width and Formatting
         for col in ws.columns:
             max_length = 0
             column = col[0].column_letter
             for cell in col:
                 try: max_length = max(max_length, len(str(cell.value)))
                 except: pass
-                # Format numbers to 2 decimal places
                 if isinstance(cell.value, (int, float)) and cell.row > 1:
                     cell.number_format = '#,##0.00'
-            ws.column_dimensions[column].width = max_length + 3
+            ws.column_dimensions[column].width = max_length + 4
             
-        ws.freeze_panes = "A2" # Keeps header visible
+        ws.freeze_panes = "A2"
     return buf.getvalue()
 
-# ----------- ROBUST EXTRACTION ENGINE -----------
+# ----------- EXTRACTION ENGINE -----------
 def extract_all(text):
-    # Expanded splitting markers for various banks
     challans = re.split(r"Challan Receipt|Taxpayer Counterfoil|Income Tax|Challan Summary", text, flags=re.IGNORECASE)
     rows = []
 
     for ch in challans:
-        # Deep cleaning to remove invisible OCR artifacts
         ch = re.sub(r'[^\x00-\x7F]+', ' ', ch) 
-        
         if not re.search(r"Challan No|CIN|BSR|Amount", ch, re.IGNORECASE):
             continue
 
@@ -111,7 +105,6 @@ def extract_all(text):
                 if m: return m.group(1).replace(",", "").strip()
             return "0"
 
-        # Date Extraction with multiple formats
         dep_date_str = get_val([
             r"Date of Deposit\s*[:\-]?\s*(\d{2}-[A-Za-z]{3}-\d{4})", 
             r"Deposit Date\s*(\d{2}/\d{2}/\d{4})",
@@ -126,31 +119,35 @@ def extract_all(text):
                 try: dep_date = datetime.strptime(dep_date_str, "%d-%m-%Y")
                 except: continue
 
-        nature_code = get_val([r"Nature of Payment\s*[:\-]?\s*(\w+)", r"Section\s*[:\-]?\s*(\w+)"])
-        nature_desc = SECTION_MAP.get(nature_code.upper(), nature_code)
+        nature_code = get_val([r"Nature of Payment\s*[:\-]?\s*(\w+)", r"Section\s*[:\-]?\s*(\w+)"]).upper()
+        sec_info = SECTION_DATA.get(nature_code, {"desc": nature_code, "rate": 0.0})
 
-        # Money Values
         tax = float(get_val([r"A\s*Tax\s*₹?\s*([\d,.]+)"]))
         interest = float(get_val([r"D\s*Interest\s*₹?\s*([\d,.]+)"]))
         total = float(get_val([r"Total\s*.*?₹?\s*([\d,.]+)"]))
 
-        # Calculations
         tds_month_date = dep_date - relativedelta(months=1)
         due_date = (tds_month_date + relativedelta(months=1)).replace(day=7)
         delay_days = max(0, (dep_date - due_date).days)
         
-        # EFFECTIVE RATE CALCULATOR
         base_amount = float(get_val([r"Paid\s*/\s*Credited\s*₹?\s*([\d,.]+)"]))
         eff_rate = (tax / base_amount * 100) if base_amount > 0 else 0
+        statutory_rate = sec_info["rate"]
+        
+        compliance = "Correct ✅"
+        if statutory_rate > 0 and abs(eff_rate - statutory_rate) > 0.05:
+            compliance = "Anomaly ⚠️"
 
         rows.append({
             "Financial Year": get_val([r"Financial Year\s*[:\-]?\s*([\d\-]+)"]),
-            "Section": nature_desc,
+            "Section": sec_info["desc"],
+            "Statutory Rate (%)": statutory_rate,
+            "Effective Rate (%)": round(eff_rate, 2),
+            "Rate Compliance": compliance,
             "TDS Month": tds_month_date.strftime("%B"),
             "Deposit Date": dep_date.strftime("%d-%b-%Y"),
             "Status": "On Time ✅" if delay_days <= 0 else f"Late ({delay_days} days) ⚠️",
             "Tax (₹)": tax,
-            "Effective Rate (%)": round(eff_rate, 2),
             "Interest (₹)": interest,
             "Total Paid (₹)": total,
             "Challan No": get_val([r"Challan No\s*[:\-]?\s*(\d+)"]),
@@ -170,12 +167,11 @@ if files:
         df = pd.DataFrame(all_data)
         
         st.markdown("### 📊 Auditor Insights")
-        m1, m2, m3, m4 = st.columns(4)
+        m1, m2, m3 = st.columns(3)
         m1.metric("Total Challans", len(df))
         m2.metric("Total Tax", f"₹{df['Tax (₹)'].sum():,.2f}")
-        m3.metric("Avg Rate", f"{df['Effective Rate (%)'].mean():.2%}")
         late_count = len(df[df['Status'].str.contains("Late")])
-        m4.metric("Late Payments", late_count, delta=late_count, delta_color="inverse")
+        m3.metric("Late Payments", late_count, delta=late_count, delta_color="inverse")
 
         st.markdown("---")
         c1, c2 = st.columns([1, 1])
@@ -186,11 +182,11 @@ if files:
             fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", font=dict(color="white"))
             st.plotly_chart(fig, use_container_width=True)
         with c2:
-            st.markdown('<div class="zone">📥 Audit Report Ready</div>', unsafe_allow_html=True)
-            st.download_button("🚀 Download Excel with Rate Analysis", data=to_excel(df), file_name="TDS_Challan_Audit.xlsx")
+            st.markdown('<div class="zone">📥 Audit Report Ready (IT Act 2026 Compliant)</div>', unsafe_allow_html=True)
+            st.download_button("🚀 Download Excel with Statutory Rate Audit", data=to_excel(df), file_name="TDS_Challan_Statutory_Audit.xlsx")
 
-        st.dataframe(df.style.format({"Tax (₹)": "{:,.2f}", "Total Paid (₹)": "{:,.2f}", "Effective Rate (%)": "{:.2f}%"}), use_container_width=True)
+        st.dataframe(df.style.format({"Tax (₹)": "{:,.2f}", "Total Paid (₹)": "{:,.2f}", "Effective Rate (%)": "{:.2f}%", "Statutory Rate (%)": "{:.2f}%"}), use_container_width=True)
     else:
         st.error("❌ No valid patterns found. Ensure your PDF is not a scanned image.")
 
-st.caption("⚙️ Auditor Pro developed by Abhishek Jakkula")
+st.caption("⚙️ Statutory Auditor Pro developed by Abhishek Jakkula")
