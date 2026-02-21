@@ -1,6 +1,7 @@
 streamlit
-pdfplumber
 pandas
-python-dateutil
+numpy
+plotly
+xlsxwriter
 openpyxl
-openai
+rapidfuzz
