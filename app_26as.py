@@ -32,58 +32,41 @@ st.markdown('<div class="main-header">⚖️ TDS AI AUDITOR PRO</div>', unsafe_a
 st.markdown(f'<div class="branding-sub">Developed by Abhishek Jakkula</div>', unsafe_allow_html=True)
 st.markdown('<div class="contact-sub">📧 Jakkulaabhishek5@gmail.com | Statutory Compliance Tool</div>', unsafe_allow_html=True)
 
-# ----------- FULL STATUTORY TDS RATES & LIMITS (IT ACT) -----------
+# ----------- FULL TDS RATES & LIMITS (FY 2025-26) -----------
 SECTION_DATA = {
-  "192": {"desc": "192 (Salary)", "rate": "Slab Rates", "limit": "Basic Exemption Limit"},
-  "192A": {"desc": "192A (Premature EPF Withdrawal)", "rate": "10%", "limit": "₹50,000"},
-  "193": {"desc": "193 (Interest on Securities)", "rate": "10%", "limit": "₹10,000"},
-  "194": {"desc": "194 (Dividend)", "rate": "10%", "limit": "₹10,000"},
-  "194A": {"desc": "194A (Interest other than Securities)", "rate": "10%", "limit": "₹50,000 (Senior Citizen) / ₹50,000 (Others – Bank) / ₹10,000 (Others)"},
-  "194B": {"desc": "194B (Lottery/Crossword Winnings)", "rate": "30%", "limit": "₹10,000"},
-  "194BA": {"desc": "194BA (Online Gaming Winnings)", "rate": "30%", "limit": "No Threshold"},
-  "194BB": {"desc": "194BB (Horse Race Winnings)", "rate": "30%", "limit": "₹10,000 (Aggregate)"},
-  "194C": {"desc": "194C (Contractor)", "rate": "1% (Ind/HUF) / 2% (Others)", "limit": "₹30,000 Single / ₹1,00,000 Aggregate"},
-  "194D": {"desc": "194D (Insurance Commission)", "rate": "2% (Ind/HUF) / 10% (Others)", "limit": "₹20,000"},
-  "194DA": {"desc": "194DA (Life Insurance Payout)", "rate": "2%", "limit": "₹1,00,000"},
-  "194EE": {"desc": "194EE (NSS Withdrawal)", "rate": "10%", "limit": "₹2,500"},
-  "194G": {"desc": "194G (Lottery Commission)", "rate": "2%", "limit": "₹20,000"},
-  "194H": {"desc": "194H (Commission/Brokerage)", "rate": "2%", "limit": "₹20,000"},
-  "194I(a)": {"desc": "194I(a) (Rent – Plant & Machinery)", "rate": "2%", "limit": "₹6,00,000"},
-  "194I(b)": {"desc": "194I(b) (Rent – Land/Building/Furniture)", "rate": "10%", "limit": "₹6,00,000"},
-  "194IA": {"desc": "194IA (Immovable Property Transfer)", "rate": "1%", "limit": "₹50,00,000"},
-  "194IB": {"desc": "194IB (Rent by Individual/HUF not under 194I)", "rate": "2%", "limit": "₹50,000 per month"},
-  "194IC": {"desc": "194IC (Joint Development Agreement)", "rate": "10%", "limit": "No Threshold"},
-  "194J(a)": {"desc": "194J(a) (Technical Services / Royalty etc.)", "rate": "2%", "limit": "₹50,000"},
-  "194J(b)": {"desc": "194J(b) (Professional Services)", "rate": "10%", "limit": "₹50,000"},
-  "194K": {"desc": "194K (Mutual Fund Income)", "rate": "10%", "limit": "₹10,000"},
-  "194LA": {"desc": "194LA (Compensation – Immovable Property)", "rate": "10%", "limit": "₹5,00,000"},
-  "194LBA": {"desc": "194LBA (Business Trust Income)", "rate": "10% / 30%", "limit": "No Threshold"},
-  "194LBB": {"desc": "194LBB (Investment Fund Income)", "rate": "30%", "limit": "No Threshold"},
-  "194LBC": {"desc": "194LBC (Securitisation Trust Income – Resident)", "rate": "10%", "limit": "No Threshold"},
-  "194LB": {"desc": "194LB (Infra Debt Fund Interest)", "rate": "5%", "limit": "No Threshold"},
-  "194LC": {"desc": "194LC (Foreign Currency Borrowing Interest)", "rate": "4% / 9%", "limit": "No Threshold"},
-  "194LD": {"desc": "194LD (Interest on Rupee Bonds/Govt Securities to FII)", "rate": "5%", "limit": "No Threshold"},
-  "194M": {"desc": "194M (Payment by Individual/HUF > ₹50L)", "rate": "2%", "limit": "₹50,00,000"},
-  "194N": {"desc": "194N (Cash Withdrawal)", "rate": "2% / 5%", "limit": "₹20L / ₹1Cr"},
-  "194O": {"desc": "194O (E-commerce Participant)", "rate": "0.10%", "limit": "₹5,00,000"},
-  "194P": {"desc": "194P (Specified Senior Citizen)", "rate": "Slab Rates", "limit": "No Threshold"},
-  "194Q": {"desc": "194Q (Purchase of Goods)", "rate": "0.10%", "limit": "₹50,00,000"},
-  "194R": {"desc": "194R (Business Perquisites)", "rate": "10%", "limit": "₹20,000"},
-  "194S": {"desc": "194S (Virtual Digital Asset)", "rate": "1%", "limit": "₹10,000 / ₹50,000"},
-  "194T": {"desc": "194T (Partner Remuneration)", "rate": "10%", "limit": "₹20,000"},
-  "195": {"desc": "195 (Payment to Non-Resident)", "rate": "As per Act/DTAA", "limit": "No Threshold"},
-  "196A": {"desc": "196A (Income of Units – Non Resident)", "rate": "20%", "limit": "₹10,000"},
-  "196B": {"desc": "196B (Units to Offshore Fund)", "rate": "10% / 12.5%", "limit": "No Threshold"},
-  "196C": {"desc": "196C (Foreign Company Income)", "rate": "12.5%", "limit": "No Threshold"},
-  "196D": {"desc": "196D (FII Income)", "rate": "20% / 10%", "limit": "No Threshold"}
+    "192": {"desc": "Salary", "rate": "Slab rates", "limit": "Basic exemption limit"},
+    "192A": {"desc": "Premature withdrawal from EPF", "rate": "10%", "limit": "Rs. 50,000"},
+    "193": {"desc": "Interest on Securities", "rate": "10%", "limit": "Rs. 10,000"},
+    "194": {"desc": "Dividends", "rate": "10%", "limit": "Rs. 10,000"},
+    "194A": {"desc": "Interest (Bank/Post Office)", "rate": "10%", "limit": "Rs. 50,000 (Gen) / Rs. 1,00,000 (Sr. Citizen)"},
+    "194B": {"desc": "Winnings (Lottery/Puzzle)", "rate": "30%", "limit": "Rs. 10,000 (Single Transaction)"},
+    "194BA": {"desc": "Online gaming winnings", "rate": "30%", "limit": "N/A"},
+    "194BB": {"desc": "Winnings from horse races", "rate": "30%", "limit": "Rs. 10,000 (Aggregate)"},
+    "194C": {"desc": "Payment to contractors", "rate": "1% (Ind/HUF) / 2% (Others)", "limit": "Rs. 30,000 (Single) / Rs. 1 Lakh (FY)"},
+    "194D": {"desc": "Insurance Commission", "rate": "2% (Ind/HUF) / 10% (Others)", "limit": "Rs. 20,000"},
+    "194DA": {"desc": "Life Insurance Policy payment", "rate": "2%", "limit": "Rs. 1 Lakh"},
+    "194EE": {"desc": "National Savings Scheme (NSS)", "rate": "10%", "limit": "Rs. 2,500"},
+    "194G": {"desc": "Lottery Commission", "rate": "2%", "limit": "Rs. 20,000"},
+    "194H": {"desc": "Commission/Brokerage", "rate": "2%", "limit": "Rs. 20,000"},
+    "194I": {"desc": "Rent (Plant & Machinery)", "rate": "2%", "limit": "Rs. 6,00,000 (FY)"},
+    "194IA": {"desc": "Rent (Immovable Property)", "rate": "10%", "limit": "Rs. 6,00,000 (FY)"},
+    "194IB": {"desc": "Rent (Ind/HUF not under 194I)", "rate": "2%", "limit": "Rs. 50,000 pm"},
+    "194J(a)": {"desc": "Tech Services/Royalty/Call Centre", "rate": "2%", "limit": "Rs. 50,000"},
+    "194J(b)": {"desc": "Professional Services", "rate": "10%", "limit": "Rs. 50,000"},
+    "194LA": {"desc": "Enhanced Compensation (Property)", "rate": "10%", "limit": "Rs. 5 Lakhs"},
+    "194M": {"desc": "Payment for Contracts/Prof. Fees", "rate": "2%", "limit": "Rs. 50 Lakhs"},
+    "194N": {"desc": "Cash withdrawal (Bank/Co-op)", "rate": "2% / 5%", "limit": "Rs. 20 Lakh / Rs. 1 Crore"},
+    "194O": {"desc": "E-commerce participants", "rate": "0.10%", "limit": "Rs. 5 Lakhs"},
+    "194Q": {"desc": "Purchase of Goods", "rate": "0.10%", "limit": "Rs. 50 Lakhs"},
+    "194R": {"desc": "Benefits/Perquisites (Business)", "rate": "10%", "limit": "Rs. 20,000"},
+    "194S": {"desc": "Virtual Digital Assets (VDA)", "rate": "1%", "limit": "Rs. 10,000 / Rs. 50,000"},
+    "194T": {"desc": "Payment to Partner of Firm", "rate": "10%", "limit": "Rs. 20,000"}
 }
 
-# ----------- EXCEL EXPORTER WITH DASHBOARD, CHARTS, & LIMITS -----------
+# ----------- EXCEL EXPORTER -----------
 def to_excel_with_charts(df):
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    
-    # 1. Data Sheet
     df.to_excel(writer, sheet_name='Audit_Data', index=False)
     workbook = writer.book
     worksheet = writer.sheets['Audit_Data']
@@ -93,14 +76,11 @@ def to_excel_with_charts(df):
         column_len = max(df[col].astype(str).map(len).max(), len(col)) + 2
         worksheet.set_column(i, i, column_len)
 
-    # 2. Dashboard Sheet
     dashboard = workbook.add_worksheet('Dashboard')
     writer.sheets['Dashboard'] = dashboard
-    
     summary = df.groupby('Section')['Tax Paid (₹)'].sum().reset_index()
     summary.to_excel(writer, sheet_name='Dashboard', startrow=2, startcol=0, index=False)
     
-    # Pie Chart in Excel
     chart = workbook.add_chart({'type': 'pie'})
     chart.add_series({
         'name': 'Tax Distribution',
@@ -111,14 +91,11 @@ def to_excel_with_charts(df):
     chart.set_title({'name': 'Tax Distribution by Section'})
     dashboard.insert_chart('D2', chart)
 
-    # Styling for Excel
     title_fmt = workbook.add_format({'bold': True, 'font_size': 14, 'font_color': '#4f46e5', 'border': 1})
     header_fmt = workbook.add_format({'bold': True, 'bg_color': '#D7E4BC', 'border': 1})
     
-    dashboard.write('A1', "TDS Audit Report", title_fmt)
-    dashboard.write('A18', "Statutory Rates & Threshold Limits Reference:", title_fmt)
-    
-    # Header for Limits Table
+    dashboard.write('A1', "TDS Audit Report - Abhishek Jakkula", title_fmt)
+    dashboard.write('A18', "Full Statutory Rates & Limits Reference (FY 2025-26):", title_fmt)
     dashboard.write('A19', 'Section Description', header_fmt)
     dashboard.write('B19', 'Rate', header_fmt)
     dashboard.write('C19', 'Threshold Limit', header_fmt)
@@ -128,9 +105,7 @@ def to_excel_with_charts(df):
         dashboard.write(row_num + 20, 1, info['rate'])
         dashboard.write(row_num + 20, 2, info['limit'])
 
-    # Auto-width for Dashboard columns
-    dashboard.set_column(0, 2, 35)
-
+    dashboard.set_column(0, 2, 45)
     writer.close()
     return output.getvalue()
 
@@ -145,7 +120,6 @@ def extract_data(text):
     blocks = re.split(r"Challan Receipt|Taxpayer Counterfoil|Income Tax", text, flags=re.IGNORECASE)
     for block in blocks:
         if not re.search(r"CIN|BSR|Amount", block, re.IGNORECASE): continue
-        
         date_match = re.search(r"(\d{2}[-/][A-Za-z0-9]{2,3}[-/]\d{2,4})", block)
         sec_match = re.search(r"(?:Nature of Payment|Section)\s*[:\-]?\s*(\w+)", block, re.IGNORECASE)
         tax_match = re.search(r"(?:Tax|Income Tax)\s*₹?\s*([\d,.]+)", block, re.IGNORECASE)
@@ -155,13 +129,12 @@ def extract_data(text):
             try:
                 dep_date = pd.to_datetime(date_match.group(1).replace("/", "-"))
             except: continue
-
             sec_code = sec_match.group(1).upper() if sec_match else ""
-            sec_info = SECTION_DATA.get(sec_code, {"desc": f"Sec {sec_code}", "rate": "Manual Check", "limit": "N/A"})
+            lookup_code = sec_code if sec_code.startswith("194") else "1" + sec_code if sec_code.startswith("94") else sec_code
+            sec_info = SECTION_DATA.get(lookup_code, {"desc": f"Sec {sec_code}", "rate": "Manual Check", "limit": "N/A"})
             
             tax_val = clean_num(tax_match.group(1)) if tax_match else 0.0
             paid_int = clean_num(int_match.group(1)) if int_match else 0.0
-            
             tds_month = dep_date - relativedelta(months=1)
             due_date = (tds_month + relativedelta(months=1)).replace(day=7)
             delay = (dep_date - due_date).days
@@ -180,7 +153,7 @@ def extract_data(text):
     return rows
 
 # ----------- WEB DASHBOARD FLOW -----------
-uploaded_files = st.file_uploader("📂 UPLOAD TDS CHALLAN PDFs", type="pdf", accept_multiple_files=True)
+uploaded_files = st.file_uploader("📂 UPLOAD CHALLAN PDFs", type="pdf", accept_multiple_files=True)
 
 if uploaded_files:
     all_rows = []
@@ -191,17 +164,12 @@ if uploaded_files:
     
     if all_rows:
         df = pd.DataFrame(all_rows)
-        
         st.markdown("### 📊 AUDIT DASHBOARD")
-        col1, col2 = st.columns([1, 1])
-        
+        col1, col2 = st.columns(2)
         with col1:
-            fig_pie = px.pie(df, names='Section', values='Tax Paid (₹)', hole=0.4, title="Tax Distribution", template="plotly_dark")
-            st.plotly_chart(fig_pie, use_container_width=True)
-            
+            st.plotly_chart(px.pie(df, names='Section', values='Tax Paid (₹)', hole=0.4, title="Tax Distribution", template="plotly_dark"), use_container_width=True)
         with col2:
-            fig_bar = px.bar(df, x='TDS Month', y='Tax Paid (₹)', color='Section', title="Monthly Tax Trend", template="plotly_dark")
-            st.plotly_chart(fig_bar, use_container_width=True)
+            st.plotly_chart(px.bar(df, x='TDS Month', y='Tax Paid (₹)', color='Section', title="Monthly Tax Trend", template="plotly_dark"), use_container_width=True)
 
         st.download_button(
             "🚀 DOWNLOAD EXCEL WITH DASHBOARD & RATES",
@@ -211,15 +179,10 @@ if uploaded_files:
         )
 
         st.markdown("### 🔍 DETAILED AUDIT TABLE")
-        try:
-            st.dataframe(df.style.background_gradient(subset=['Interest Gap (₹)'], cmap='RdYlGn'), use_container_width=True)
-        except:
-            st.dataframe(df, use_container_width=True)
+        st.dataframe(df, use_container_width=True)
 
-        # Statutory Reference Table on Web
-        with st.expander("📖 View Statutory TDS Rates & Limits (2025-26)"):
-            rates_df = pd.DataFrame(SECTION_DATA).T.reset_index()
-            rates_df.columns = ["Code", "Description", "Rate", "Threshold Limit"]
+        with st.expander("📖 View Statutory TDS Rates & Limits (FY 2025-26)"):
+            rates_df = pd.DataFrame(SECTION_DATA).T.reset_index().rename(columns={"index": "Code", "desc": "Description", "rate": "Rate", "limit": "Threshold"})
             st.table(rates_df)
 
 st.markdown(f'<div class="footer">© {datetime.now().year} | Designed by Abhishek Jakkula | Jakkulaabhishek5@gmail.com</div>', unsafe_allow_html=True)
