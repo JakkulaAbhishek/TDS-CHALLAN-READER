@@ -78,7 +78,6 @@ SECTION_DATA = {
   "196C": {"desc": "196C (Foreign Company Income)", "rate": "12.5%", "limit": "No Threshold"},
   "196D": {"desc": "196D (FII Income)", "rate": "20% / 10%", "limit": "No Threshold"}
 }
-}
 
 # ----------- EXCEL EXPORTER WITH DASHBOARD, CHARTS, & LIMITS -----------
 def to_excel_with_charts(df):
