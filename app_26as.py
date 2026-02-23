@@ -47,7 +47,6 @@ SECTION_DATA = {
 # ----------- EXCEL EXPORTER WITH DASHBOARD & AUTO-WIDTH -----------
 def to_excel_with_charts(df):
     output = BytesIO()
-    # Using xlsxwriter to support charts
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
     
     # 1. Data Sheet
@@ -64,31 +63,30 @@ def to_excel_with_charts(df):
     dashboard = workbook.add_worksheet('Dashboard')
     writer.sheets['Dashboard'] = dashboard
     
-    # Summary Table for Charts
     summary = df.groupby('Section')['Tax Paid (₹)'].sum().reset_index()
-    summary.to_excel(writer, sheet_name='Dashboard', startrow=1, startcol=0, index=False)
+    summary.to_excel(writer, sheet_name='Dashboard', startrow=2, startcol=0, index=False)
     
-    # Create Chart
+    # Create Pie Chart
     chart = workbook.add_chart({'type': 'pie'})
     chart.add_series({
         'name': 'Tax Distribution',
-        'categories': ['Dashboard', 2, 0, len(summary)+1, 0],
-        'values':     ['Dashboard', 2, 1, len(summary)+1, 1],
-        'data_labels': {'percentage': True},
+        'categories': ['Dashboard', 3, 0, len(summary)+2, 0],
+        'values':     ['Dashboard', 3, 1, len(summary)+2, 1],
+        'data_labels': {'percentage': True, 'position': 'outside_end'},
     })
     chart.set_title({'name': 'Tax Distribution by Section'})
-    chart.set_style(10)
     dashboard.insert_chart('D2', chart)
 
-    # Add Branding to Dashboard
-    header_fmt = workbook.add_format({'bold': True, 'font_size': 14, 'font_color': '#4f46e5'})
-    dashboard.write('A0', f"TDS Audit Report - {Abhishek Jakkula}", header_fmt)
-    dashboard.write('A20', "Statutory Rates Reference:")
+    # Branding & Rates Reference
+    title_fmt = workbook.add_format({'bold': True, 'font_size': 16, 'font_color': '#4f46e5'})
+    sub_fmt = workbook.add_format({'italic': True, 'font_color': '#64748b'})
     
-    # 3. Add Rates per Act
+    dashboard.write('A1', "TDS Audit Report - Abhishek Jakkula", title_fmt)
+    dashboard.write('A18', "Statutory Rates Reference (IT Act):", title_fmt)
+    
     for row_num, (code, info) in enumerate(SECTION_DATA.items()):
-        dashboard.write(row_num + 22, 0, info['desc'])
-        dashboard.write(row_num + 22, 1, info['rate'])
+        dashboard.write(row_num + 20, 0, info['desc'])
+        dashboard.write(row_num + 20, 1, info['rate'])
 
     writer.close()
     return output.getvalue()
@@ -116,7 +114,7 @@ def extract_data(text):
             except: continue
 
             sec_code = sec_match.group(1).upper() if sec_match else ""
-            sec_info = SECTION_DATA.get(sec_code, {"desc": "Other", "rate": "N/A"})
+            sec_info = SECTION_DATA.get(sec_code, {"desc": f"Section {sec_code}", "rate": "Verify per Act"})
             
             tax_val = clean_num(tax_match.group(1)) if tax_match else 0.0
             paid_int = clean_num(int_match.group(1)) if int_match else 0.0
@@ -129,6 +127,7 @@ def extract_data(text):
                 "Section": sec_info['desc'],
                 "Rate as per Act": sec_info['rate'],
                 "Deposit Date": dep_date.strftime("%d-%b-%Y"),
+                "TDS Month": tds_month.strftime("%B %Y"),
                 "Status": "✅ On-Time" if delay <= 0 else f"⚠️ Late ({delay} Days)",
                 "Tax Paid (₹)": tax_val,
                 "Interest Paid (₹)": paid_int,
@@ -136,28 +135,44 @@ def extract_data(text):
             })
     return rows
 
-# ----------- APP FLOW -----------
-uploaded_files = st.file_uploader("📂 UPLOAD CHALLANS", type="pdf", accept_multiple_files=True)
+# ----------- PROCESS FLOW -----------
+col_l, col_m, col_r = st.columns([1, 2, 1])
+with col_m:
+    files = st.file_uploader("📂 UPLOAD CHALLAN PDFs", type="pdf", accept_multiple_files=True)
 
-if uploaded_files:
-    all_rows = []
-    for f in uploaded_files:
+if files:
+    all_data = []
+    for f in files:
         with pdfplumber.open(f) as pdf:
             text = "\n".join([p.extract_text() for p in pdf.pages if p.extract_text()])
-            all_rows.extend(extract_data(text))
+            all_data.extend(extract_data(text))
     
-    if all_rows:
-        df = pd.DataFrame(all_rows)
+    if all_data:
+        df = pd.DataFrame(all_data)
         
-        st.markdown("### 📊 DASHBOARD PREVIEW")
-        st.plotly_chart(px.pie(df, names='Section', values='Tax Paid (₹)', template="plotly_dark"), use_container_width=True)
+        st.markdown("### 📊 AUDIT SNAPSHOT")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Total Tax", f"₹{df['Tax Paid (₹)'].sum():,.2f}")
+        m2.metric("Total Interest", f"₹{df['Interest Paid (₹)'].sum():,.2f}")
+        
+        gap = df['Interest Gap (₹)'].sum()
+        m3.metric("Interest Gap", f"₹{gap:,.2f}", delta="Compliant" if gap >= 0 else "Shortfall", delta_color="normal" if gap >= 0 else "inverse")
 
+        st.markdown("---")
         st.download_button(
             "🚀 DOWNLOAD ENHANCED EXCEL (WITH CHARTS)",
             data=to_excel_with_charts(df),
-            file_name=f"TDS_Audit_Abhishek_Jakkula.xlsx",
+            file_name=f"TDS_Audit_Abhishek_Jakkula_{datetime.now().strftime('%Y%m%d')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-        st.dataframe(df, use_container_width=True)
+
+        st.markdown("### 🔍 TRANSACTION AUDIT")
+        # Added styling with a safety check
+        try:
+            st.dataframe(df.style.background_gradient(subset=['Interest Gap (₹)'], cmap='RdYlGn'), use_container_width=True)
+        except:
+            st.dataframe(df, use_container_width=True)
+    else:
+        st.error("No valid data found. Ensure the PDFs are clear and digitally generated.")
 
 st.markdown(f'<div class="footer">© {datetime.now().year} | Designed by Abhishek Jakkula | Jakkulaabhishek5@gmail.com</div>', unsafe_allow_html=True)
