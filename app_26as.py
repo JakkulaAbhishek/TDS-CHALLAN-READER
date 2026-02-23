@@ -34,7 +34,6 @@ st.markdown('<div class="contact-sub">📧 Jakkulaabhishek5@gmail.com | Statutor
 
 # ----------- FULL STATUTORY TDS RATES & LIMITS (IT ACT) -----------
 SECTION_DATA = {
-   {
   "192": {"desc": "192 (Salary)", "rate": "Slab Rates", "limit": "Basic Exemption Limit"},
   "192A": {"desc": "192A (Premature EPF Withdrawal)", "rate": "10%", "limit": "₹50,000"},
   "193": {"desc": "193 (Interest on Securities)", "rate": "10%", "limit": "₹10,000"},
