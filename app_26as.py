@@ -29,22 +29,25 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-header">⚖️ TDS AI AUDITOR PRO</div>', unsafe_allow_html=True)
-st.markdown('<div class="branding-sub">Developed by Abhishek Jakkula</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="branding-sub">Developed by Abhishek Jakkula</div>', unsafe_allow_html=True)
 st.markdown('<div class="contact-sub">📧 Jakkulaabhishek5@gmail.com | Statutory Compliance Tool</div>', unsafe_allow_html=True)
 
-# ----------- STATUTORY DATA & RATES -----------
+# ----------- FULL STATUTORY TDS RATES & LIMITS (IT ACT) -----------
 SECTION_DATA = {
-    "94C": {"desc": "194C (Contractor)", "rate": "1% / 2%"},
-    "94J": {"desc": "194J (Professional)", "rate": "10%"},
-    "194JB": {"desc": "194JB (Technical)", "rate": "2%"},
-    "94I": {"desc": "194I (Rent)", "rate": "10%"},
-    "94H": {"desc": "194H (Commission)", "rate": "5%"},
-    "92": {"desc": "192 (Salary)", "rate": "Slab Rate"},
-    "94Q": {"desc": "194Q (Goods)", "rate": "0.1%"},
-    "94A": {"desc": "194A (Interest)", "rate": "10%"}
+    "94C": {"desc": "194C (Contractor)", "rate": "1% (Ind/HUF) / 2% (Other)", "limit": "₹30k (Single) / ₹1L (Agg)"},
+    "94J": {"desc": "194J (Professional)", "rate": "10%", "limit": "₹30,000"},
+    "194JB": {"desc": "194JB (Technical/FTS)", "rate": "2%", "limit": "₹30,000"},
+    "94I": {"desc": "194I (Rent - Plant/Machinery)", "rate": "2%", "limit": "₹2,40,000"},
+    "94IA": {"desc": "194I (Rent - Land/Building)", "rate": "10%", "limit": "₹2,40,000"},
+    "94H": {"desc": "194H (Commission)", "rate": "5%", "limit": "₹15,000"},
+    "92": {"desc": "192 (Salary)", "rate": "Slab Rates", "limit": "Basic Exemption"},
+    "94Q": {"desc": "194Q (Goods Purchase)", "rate": "0.1%", "limit": "₹50 Lakhs"},
+    "94A": {"desc": "194A (Interest - Non Bank)", "rate": "10%", "limit": "₹5,000"},
+    "94N": {"desc": "194N (Cash Withdrawal)", "rate": "2% / 5%", "limit": "₹20L / ₹1Cr"},
+    "94DA": {"desc": "194DA (Life Insurance)", "rate": "5%", "limit": "₹1,00,000"},
 }
 
-# ----------- EXCEL EXPORTER WITH DASHBOARD & AUTO-WIDTH -----------
+# ----------- EXCEL EXPORTER WITH DASHBOARD, CHARTS, & LIMITS -----------
 def to_excel_with_charts(df):
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
@@ -66,7 +69,7 @@ def to_excel_with_charts(df):
     summary = df.groupby('Section')['Tax Paid (₹)'].sum().reset_index()
     summary.to_excel(writer, sheet_name='Dashboard', startrow=2, startcol=0, index=False)
     
-    # Create Pie Chart
+    # Pie Chart in Excel
     chart = workbook.add_chart({'type': 'pie'})
     chart.add_series({
         'name': 'Tax Distribution',
@@ -77,16 +80,25 @@ def to_excel_with_charts(df):
     chart.set_title({'name': 'Tax Distribution by Section'})
     dashboard.insert_chart('D2', chart)
 
-    # Branding & Rates Reference
-    title_fmt = workbook.add_format({'bold': True, 'font_size': 16, 'font_color': '#4f46e5'})
-    sub_fmt = workbook.add_format({'italic': True, 'font_color': '#64748b'})
+    # Styling for Excel
+    title_fmt = workbook.add_format({'bold': True, 'font_size': 14, 'font_color': '#4f46e5', 'border': 1})
+    header_fmt = workbook.add_format({'bold': True, 'bg_color': '#D7E4BC', 'border': 1})
     
     dashboard.write('A1', "TDS Audit Report - Abhishek Jakkula", title_fmt)
-    dashboard.write('A18', "Statutory Rates Reference (IT Act):", title_fmt)
+    dashboard.write('A18', "Statutory Rates & Threshold Limits Reference:", title_fmt)
     
+    # Header for Limits Table
+    dashboard.write('A19', 'Section Description', header_fmt)
+    dashboard.write('B19', 'Rate', header_fmt)
+    dashboard.write('C19', 'Threshold Limit', header_fmt)
+
     for row_num, (code, info) in enumerate(SECTION_DATA.items()):
         dashboard.write(row_num + 20, 0, info['desc'])
         dashboard.write(row_num + 20, 1, info['rate'])
+        dashboard.write(row_num + 20, 2, info['limit'])
+
+    # Auto-width for Dashboard columns
+    dashboard.set_column(0, 2, 35)
 
     writer.close()
     return output.getvalue()
@@ -114,7 +126,7 @@ def extract_data(text):
             except: continue
 
             sec_code = sec_match.group(1).upper() if sec_match else ""
-            sec_info = SECTION_DATA.get(sec_code, {"desc": f"Section {sec_code}", "rate": "Verify per Act"})
+            sec_info = SECTION_DATA.get(sec_code, {"desc": f"Sec {sec_code}", "rate": "Manual Check", "limit": "N/A"})
             
             tax_val = clean_num(tax_match.group(1)) if tax_match else 0.0
             paid_int = clean_num(int_match.group(1)) if int_match else 0.0
@@ -125,7 +137,8 @@ def extract_data(text):
             
             rows.append({
                 "Section": sec_info['desc'],
-                "Rate as per Act": sec_info['rate'],
+                "Rate per Act": sec_info['rate'],
+                "Exemption Limit": sec_info['limit'],
                 "Deposit Date": dep_date.strftime("%d-%b-%Y"),
                 "TDS Month": tds_month.strftime("%B %Y"),
                 "Status": "✅ On-Time" if delay <= 0 else f"⚠️ Late ({delay} Days)",
@@ -135,44 +148,47 @@ def extract_data(text):
             })
     return rows
 
-# ----------- PROCESS FLOW -----------
-col_l, col_m, col_r = st.columns([1, 2, 1])
-with col_m:
-    files = st.file_uploader("📂 UPLOAD CHALLAN PDFs", type="pdf", accept_multiple_files=True)
+# ----------- WEB DASHBOARD FLOW -----------
+uploaded_files = st.file_uploader("📂 UPLOAD TDS CHALLAN PDFs", type="pdf", accept_multiple_files=True)
 
-if files:
-    all_data = []
-    for f in files:
+if uploaded_files:
+    all_rows = []
+    for f in uploaded_files:
         with pdfplumber.open(f) as pdf:
             text = "\n".join([p.extract_text() for p in pdf.pages if p.extract_text()])
-            all_data.extend(extract_data(text))
+            all_rows.extend(extract_data(text))
     
-    if all_data:
-        df = pd.DataFrame(all_data)
+    if all_rows:
+        df = pd.DataFrame(all_rows)
         
-        st.markdown("### 📊 AUDIT SNAPSHOT")
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Total Tax", f"₹{df['Tax Paid (₹)'].sum():,.2f}")
-        m2.metric("Total Interest", f"₹{df['Interest Paid (₹)'].sum():,.2f}")
+        st.markdown("### 📊 AUDIT DASHBOARD")
+        col1, col2 = st.columns([1, 1])
         
-        gap = df['Interest Gap (₹)'].sum()
-        m3.metric("Interest Gap", f"₹{gap:,.2f}", delta="Compliant" if gap >= 0 else "Shortfall", delta_color="normal" if gap >= 0 else "inverse")
+        with col1:
+            fig_pie = px.pie(df, names='Section', values='Tax Paid (₹)', hole=0.4, title="Tax Distribution", template="plotly_dark")
+            st.plotly_chart(fig_pie, use_container_width=True)
+            
+        with col2:
+            fig_bar = px.bar(df, x='TDS Month', y='Tax Paid (₹)', color='Section', title="Monthly Tax Trend", template="plotly_dark")
+            st.plotly_chart(fig_bar, use_container_width=True)
 
-        st.markdown("---")
         st.download_button(
-            "🚀 DOWNLOAD ENHANCED EXCEL (WITH CHARTS)",
+            "🚀 DOWNLOAD EXCEL WITH DASHBOARD & RATES",
             data=to_excel_with_charts(df),
             file_name=f"TDS_Audit_Abhishek_Jakkula_{datetime.now().strftime('%Y%m%d')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-        st.markdown("### 🔍 TRANSACTION AUDIT")
-        # Added styling with a safety check
+        st.markdown("### 🔍 DETAILED AUDIT TABLE")
         try:
             st.dataframe(df.style.background_gradient(subset=['Interest Gap (₹)'], cmap='RdYlGn'), use_container_width=True)
         except:
             st.dataframe(df, use_container_width=True)
-    else:
-        st.error("No valid data found. Ensure the PDFs are clear and digitally generated.")
+
+        # Statutory Reference Table on Web
+        with st.expander("📖 View Statutory TDS Rates & Limits (2025-26)"):
+            rates_df = pd.DataFrame(SECTION_DATA).T.reset_index()
+            rates_df.columns = ["Code", "Description", "Rate", "Threshold Limit"]
+            st.table(rates_df)
 
 st.markdown(f'<div class="footer">© {datetime.now().year} | Designed by Abhishek Jakkula | Jakkulaabhishek5@gmail.com</div>', unsafe_allow_html=True)
