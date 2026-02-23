@@ -1,7 +1,8 @@
 streamlit
 pdfplumber
 pandas
-openpyxl
+xlsxwriter
 python-dateutil
 plotly
 matplotlib
+jinja2
