@@ -37,8 +37,8 @@ SECTION_DATA = {
     "94C": {"desc": "194C (Contractor)", "rate": "1% (Ind/HUF) / 2% (Other)", "limit": "₹30k (Single) / ₹1L (Agg)"},
     "94J": {"desc": "194J (Professional)", "rate": "10%", "limit": "₹30,000"},
     "194JB": {"desc": "194JB (Technical/FTS)", "rate": "2%", "limit": "₹30,000"},
-    "94I": {"desc": "194I (Rent - Plant/Machinery)", "rate": "2%", "limit": "₹2,40,000"},
-    "94IA": {"desc": "194I (Rent - Land/Building)", "rate": "10%", "limit": "₹2,40,000"},
+    "94I": {"desc": "194I (Rent - Plant/Machinery)", "rate": "2%", "limit": "₹6,00,000"},
+    "94IA": {"desc": "194I (Rent - Land/Building)", "rate": "10%", "limit": "₹6,00,000"},
     "94H": {"desc": "194H (Commission)", "rate": "5%", "limit": "₹15,000"},
     "92": {"desc": "192 (Salary)", "rate": "Slab Rates", "limit": "Basic Exemption"},
     "94Q": {"desc": "194Q (Goods Purchase)", "rate": "0.1%", "limit": "₹50 Lakhs"},
@@ -84,7 +84,7 @@ def to_excel_with_charts(df):
     title_fmt = workbook.add_format({'bold': True, 'font_size': 14, 'font_color': '#4f46e5', 'border': 1})
     header_fmt = workbook.add_format({'bold': True, 'bg_color': '#D7E4BC', 'border': 1})
     
-    dashboard.write('A1', "TDS Audit Report - Abhishek Jakkula", title_fmt)
+    dashboard.write('A1', "TDS Audit Report", title_fmt)
     dashboard.write('A18', "Statutory Rates & Threshold Limits Reference:", title_fmt)
     
     # Header for Limits Table
