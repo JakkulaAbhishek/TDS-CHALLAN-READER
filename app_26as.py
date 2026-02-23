@@ -32,7 +32,8 @@ st.markdown('<div class="main-header">⚖️ TDS AI AUDITOR PRO</div>', unsafe_a
 st.markdown(f'<div class="branding-sub">Developed by Abhishek Jakkula</div>', unsafe_allow_html=True)
 st.markdown('<div class="contact-sub">📧 Jakkulaabhishek5@gmail.com | Statutory Compliance Tool</div>', unsafe_allow_html=True)
 
-# ----------- FULL TDS RATES & LIMITS (FY 2025-26) -----------
+# ----------- COMPREHENSIVE TDS RATES & LIMITS (FY 2025-26) -----------
+# Mapped directly from statutory document sources
 SECTION_DATA = {
     "192": {"desc": "Salary", "rate": "Slab rates", "limit": "Basic exemption limit"},
     "192A": {"desc": "Premature withdrawal from EPF", "rate": "10%", "limit": "Rs. 50,000"},
@@ -45,9 +46,9 @@ SECTION_DATA = {
     "194C": {"desc": "Payment to contractors", "rate": "1% (Ind/HUF) / 2% (Others)", "limit": "Rs. 30,000 (Single) / Rs. 1 Lakh (FY)"},
     "194D": {"desc": "Insurance Commission", "rate": "2% (Ind/HUF) / 10% (Others)", "limit": "Rs. 20,000"},
     "194DA": {"desc": "Life Insurance Policy payment", "rate": "2%", "limit": "Rs. 1 Lakh"},
-    "194EE": {"desc": "National Savings Scheme (NSS)", "rate": "10%", "limit": "Rs. 2,500"},
+    "194EE": {"desc": "NSS Deposits", "rate": "10%", "limit": "Rs. 2,500"},
     "194G": {"desc": "Lottery Commission", "rate": "2%", "limit": "Rs. 20,000"},
-    "194H": {"desc": "Commission/Brokerage", "rate": "2%", "limit": "Rs. 20,000"},
+    "194H": {"desc": "Commission or Brokerage", "rate": "2%", "limit": "Rs. 20,000"},
     "194I": {"desc": "Rent (Plant & Machinery)", "rate": "2%", "limit": "Rs. 6,00,000 (FY)"},
     "194IA": {"desc": "Rent (Immovable Property)", "rate": "10%", "limit": "Rs. 6,00,000 (FY)"},
     "194IB": {"desc": "Rent (Ind/HUF not under 194I)", "rate": "2%", "limit": "Rs. 50,000 pm"},
@@ -57,6 +58,7 @@ SECTION_DATA = {
     "194M": {"desc": "Payment for Contracts/Prof. Fees", "rate": "2%", "limit": "Rs. 50 Lakhs"},
     "194N": {"desc": "Cash withdrawal (Bank/Co-op)", "rate": "2% / 5%", "limit": "Rs. 20 Lakh / Rs. 1 Crore"},
     "194O": {"desc": "E-commerce participants", "rate": "0.10%", "limit": "Rs. 5 Lakhs"},
+    "194P": {"desc": "Specified Senior Citizen", "rate": "Slab Rates", "limit": "Basic Exemption"},
     "194Q": {"desc": "Purchase of Goods", "rate": "0.10%", "limit": "Rs. 50 Lakhs"},
     "194R": {"desc": "Benefits/Perquisites (Business)", "rate": "10%", "limit": "Rs. 20,000"},
     "194S": {"desc": "Virtual Digital Assets (VDA)", "rate": "1%", "limit": "Rs. 10,000 / Rs. 50,000"},
@@ -81,6 +83,7 @@ def to_excel_with_charts(df):
     summary = df.groupby('Section')['Tax Paid (₹)'].sum().reset_index()
     summary.to_excel(writer, sheet_name='Dashboard', startrow=2, startcol=0, index=False)
     
+    # Chart logic for Excel
     chart = workbook.add_chart({'type': 'pie'})
     chart.add_series({
         'name': 'Tax Distribution',
@@ -131,7 +134,7 @@ def extract_data(text):
             except: continue
             sec_code = sec_match.group(1).upper() if sec_match else ""
             lookup_code = sec_code if sec_code.startswith("194") else "1" + sec_code if sec_code.startswith("94") else sec_code
-            sec_info = SECTION_DATA.get(lookup_code, {"desc": f"Sec {sec_code}", "rate": "Manual Check", "limit": "N/A"})
+            sec_info = SECTION_DATA.get(lookup_code, {"desc": f"Sec {sec_code}", "rate": "Verify per Act", "limit": "N/A"})
             
             tax_val = clean_num(tax_match.group(1)) if tax_match else 0.0
             paid_int = clean_num(int_match.group(1)) if int_match else 0.0
@@ -169,7 +172,7 @@ if uploaded_files:
         with col1:
             st.plotly_chart(px.pie(df, names='Section', values='Tax Paid (₹)', hole=0.4, title="Tax Distribution", template="plotly_dark"), use_container_width=True)
         with col2:
-            st.plotly_chart(px.bar(df, x='TDS Month', y='Tax Paid (₹)', color='Section', title="Monthly Tax Trend", template="plotly_dark"), use_container_width=True)
+            st.plotly_chart(px.bar(df, x='TDS Month', y='Tax Paid (₹)', color='Section', title="Monthly Trend", template="plotly_dark"), use_container_width=True)
 
         st.download_button(
             "🚀 DOWNLOAD EXCEL WITH DASHBOARD & RATES",
