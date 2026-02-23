@@ -78,7 +78,8 @@ def to_excel_with_charts(df):
 
     dashboard = workbook.add_worksheet('Dashboard')
     writer.sheets['Dashboard'] = dashboard
-    summary = df.groupby('Section')['Tax Paid (₹)'].sum().reset_index()
+    # Summary by Section Code for dashboard
+    summary = df.groupby('Section Code')['Tax Paid (₹)'].sum().reset_index()
     summary.to_excel(writer, sheet_name='Dashboard', startrow=2, startcol=0, index=False)
     
     chart = workbook.add_chart({'type': 'pie'})
@@ -94,19 +95,20 @@ def to_excel_with_charts(df):
     title_fmt = workbook.add_format({'bold': True, 'font_size': 14, 'font_color': '#4f46e5', 'border': 1})
     header_fmt = workbook.add_format({'bold': True, 'bg_color': '#D7E4BC', 'border': 1})
     
-    # FIXED SYNTAX HERE: Removed curly braces from Abhishek Jakkula
     dashboard.write('A1', "TDS Audit Report - Abhishek Jakkula", title_fmt)
     dashboard.write('A18', "Full Statutory Rates & Limits Reference (FY 2025-26):", title_fmt)
-    dashboard.write('A19', 'Section Description', header_fmt)
-    dashboard.write('B19', 'Rate', header_fmt)
-    dashboard.write('C19', 'Threshold Limit', header_fmt)
+    dashboard.write('A19', 'Section Code', header_fmt)
+    dashboard.write('B19', 'Nature of Transaction', header_fmt)
+    dashboard.write('C19', 'Rate', header_fmt)
+    dashboard.write('D19', 'Threshold Limit', header_fmt)
 
     for row_num, (code, info) in enumerate(SECTION_DATA.items()):
-        dashboard.write(row_num + 20, 0, info['desc'])
-        dashboard.write(row_num + 20, 1, info['rate'])
-        dashboard.write(row_num + 20, 2, info['limit'])
+        dashboard.write(row_num + 20, 0, code)
+        dashboard.write(row_num + 20, 1, info['desc'])
+        dashboard.write(row_num + 20, 2, info['rate'])
+        dashboard.write(row_num + 20, 3, info['limit'])
 
-    dashboard.set_column(0, 2, 45)
+    dashboard.set_column(0, 3, 30)
     writer.close()
     return output.getvalue()
 
@@ -130,9 +132,10 @@ def extract_data(text):
             try:
                 dep_date = pd.to_datetime(date_match.group(1).replace("/", "-"))
             except: continue
-            sec_code = sec_match.group(1).upper() if sec_match else ""
-            lookup_code = sec_code if sec_code.startswith("194") else "1" + sec_code if sec_code.startswith("94") else sec_code
-            sec_info = SECTION_DATA.get(lookup_code, {"desc": f"Sec {sec_code}", "rate": "Verify per Act", "limit": "N/A"})
+            
+            raw_sec = sec_match.group(1).upper() if sec_match else ""
+            lookup_code = raw_sec if raw_sec.startswith("194") else "1" + raw_sec if raw_sec.startswith("94") else raw_sec
+            sec_info = SECTION_DATA.get(lookup_code, {"desc": "Other Transaction", "rate": "Verify per Act", "limit": "N/A"})
             
             tax_val = clean_num(tax_match.group(1)) if tax_match else 0.0
             paid_int = clean_num(int_match.group(1)) if int_match else 0.0
@@ -141,7 +144,8 @@ def extract_data(text):
             delay = (dep_date - due_date).days
             
             rows.append({
-                "Section": sec_info['desc'],
+                "Section Code": lookup_code,
+                "Nature of Transaction": sec_info['desc'],
                 "Rate per Act": sec_info['rate'],
                 "Exemption Limit": sec_info['limit'],
                 "Deposit Date": dep_date.strftime("%d-%b-%Y"),
@@ -168,9 +172,9 @@ if uploaded_files:
         st.markdown("### 📊 AUDIT DASHBOARD")
         col1, col2 = st.columns(2)
         with col1:
-            st.plotly_chart(px.pie(df, names='Section', values='Tax Paid (₹)', hole=0.4, title="Tax Distribution", template="plotly_dark"), use_container_width=True)
+            st.plotly_chart(px.pie(df, names='Section Code', values='Tax Paid (₹)', hole=0.4, title="Tax by Section Code", template="plotly_dark"), use_container_width=True)
         with col2:
-            st.plotly_chart(px.bar(df, x='TDS Month', y='Tax Paid (₹)', color='Section', title="Monthly Trend", template="plotly_dark"), use_container_width=True)
+            st.plotly_chart(px.bar(df, x='TDS Month', y='Tax Paid (₹)', color='Section Code', title="Monthly Trend", template="plotly_dark"), use_container_width=True)
 
         st.download_button(
             "🚀 DOWNLOAD EXCEL WITH DASHBOARD & RATES",
@@ -180,14 +184,13 @@ if uploaded_files:
         )
 
         st.markdown("### 🔍 DETAILED AUDIT TABLE")
-        # ADDED TRY-EXCEPT HERE: Fixes the matplotlib ImportError in image_bb56f6.png
         try:
             st.dataframe(df.style.background_gradient(subset=['Interest Gap (₹)'], cmap='RdYlGn'), use_container_width=True)
         except Exception:
             st.dataframe(df, use_container_width=True)
 
         with st.expander("📖 View Statutory TDS Rates & Limits (FY 2025-26)"):
-            rates_df = pd.DataFrame(SECTION_DATA).T.reset_index().rename(columns={"index": "Code", "desc": "Description", "rate": "Rate", "limit": "Threshold"})
+            rates_df = pd.DataFrame(SECTION_DATA).T.reset_index().rename(columns={"index": "Code", "desc": "Nature of Transaction", "rate": "Rate", "limit": "Threshold"})
             st.table(rates_df)
 
 st.markdown(f'<div class="footer">© {datetime.now().year} | Designed by Abhishek Jakkula | Jakkulaabhishek5@gmail.com</div>', unsafe_allow_html=True)
