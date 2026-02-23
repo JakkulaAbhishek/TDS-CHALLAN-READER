@@ -33,7 +33,6 @@ st.markdown(f'<div class="branding-sub">Developed by Abhishek Jakkula</div>', un
 st.markdown('<div class="contact-sub">📧 Jakkulaabhishek5@gmail.com | Statutory Compliance Tool</div>', unsafe_allow_html=True)
 
 # ----------- COMPREHENSIVE TDS RATES & LIMITS (FY 2025-26) -----------
-# Mapped directly from statutory document sources
 SECTION_DATA = {
     "192": {"desc": "Salary", "rate": "Slab rates", "limit": "Basic exemption limit"},
     "192A": {"desc": "Premature withdrawal from EPF", "rate": "10%", "limit": "Rs. 50,000"},
@@ -73,7 +72,6 @@ def to_excel_with_charts(df):
     workbook = writer.book
     worksheet = writer.sheets['Audit_Data']
     
-    # Auto-width logic
     for i, col in enumerate(df.columns):
         column_len = max(df[col].astype(str).map(len).max(), len(col)) + 2
         worksheet.set_column(i, i, column_len)
@@ -83,7 +81,6 @@ def to_excel_with_charts(df):
     summary = df.groupby('Section')['Tax Paid (₹)'].sum().reset_index()
     summary.to_excel(writer, sheet_name='Dashboard', startrow=2, startcol=0, index=False)
     
-    # Chart logic for Excel
     chart = workbook.add_chart({'type': 'pie'})
     chart.add_series({
         'name': 'Tax Distribution',
@@ -97,6 +94,7 @@ def to_excel_with_charts(df):
     title_fmt = workbook.add_format({'bold': True, 'font_size': 14, 'font_color': '#4f46e5', 'border': 1})
     header_fmt = workbook.add_format({'bold': True, 'bg_color': '#D7E4BC', 'border': 1})
     
+    # FIXED SYNTAX HERE: Removed curly braces from Abhishek Jakkula
     dashboard.write('A1', "TDS Audit Report - Abhishek Jakkula", title_fmt)
     dashboard.write('A18', "Full Statutory Rates & Limits Reference (FY 2025-26):", title_fmt)
     dashboard.write('A19', 'Section Description', header_fmt)
@@ -182,7 +180,11 @@ if uploaded_files:
         )
 
         st.markdown("### 🔍 DETAILED AUDIT TABLE")
-        st.dataframe(df, use_container_width=True)
+        # ADDED TRY-EXCEPT HERE: Fixes the matplotlib ImportError in image_bb56f6.png
+        try:
+            st.dataframe(df.style.background_gradient(subset=['Interest Gap (₹)'], cmap='RdYlGn'), use_container_width=True)
+        except Exception:
+            st.dataframe(df, use_container_width=True)
 
         with st.expander("📖 View Statutory TDS Rates & Limits (FY 2025-26)"):
             rates_df = pd.DataFrame(SECTION_DATA).T.reset_index().rename(columns={"index": "Code", "desc": "Description", "rate": "Rate", "limit": "Threshold"})
