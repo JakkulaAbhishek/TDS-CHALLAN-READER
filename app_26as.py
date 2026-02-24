@@ -11,23 +11,85 @@ import plotly.express as px
 # ---------------- UI CONFIG ----------------
 st.set_page_config(page_title="TDS AI Auditor | Abhishek Jakkula", layout="wide", page_icon="⚖️")
 
-# ----------- ULTRA STYLISH MODERN UI -----------
+# ----------- THEME SAFE MODERN UI -----------
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    .stApp { background-color: #0b0f19; color: #e2e8f0; }
-    .main-header {
-        background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        font-weight: 800; font-size: 3.5rem; text-align: center; margin-bottom: 5px;
-    }
-    .branding-sub { text-align: center; color: #38bdf8; font-size: 1.2rem; font-weight: 600; margin-bottom: 2px; }
-    .contact-sub { text-align: center; color: #94a3b8; font-size: 0.9rem; margin-bottom: 30px; }
-    .footer { position: fixed; bottom: 10px; left: 20px; color: #64748b; font-size: 0.85rem; font-weight: 600; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Do NOT force dark background */
+.stApp {
+    background-color: transparent;
+}
+
+/* Main Header */
+.main-header {
+    font-weight: 800;
+    font-size: 3rem;
+    text-align: center;
+    background: linear-gradient(90deg, #2563eb, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 5px;
+}
+
+.branding-sub {
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    opacity: 0.8;
+    margin-bottom: 2px;
+}
+
+.contact-sub {
+    text-align: center;
+    font-size: 0.9rem;
+    opacity: 0.6;
+    margin-bottom: 30px;
+}
+
+/* Buttons */
+.stButton>button,
+.stDownloadButton>button {
+    background: linear-gradient(90deg, #2563eb, #7c3aed);
+    color: white !important;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-weight: 600;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.stButton>button:hover,
+.stDownloadButton>button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4);
+}
+
+/* Dataframe */
+[data-testid="stDataFrame"] {
+    background: transparent;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    margin-top: 40px;
+    font-size: 0.85rem;
+    opacity: 0.6;
+}
+
+/* Hide default Streamlit footer */
+footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown('<div class="main-header">⚖️ TDS AI AUDITOR PRO</div>', unsafe_allow_html=True)
+st.markdown('<div class="branding-sub">Developed by Abhishek Jakkula</div>', unsafe_allow_html=True)
+st.markdown('<div class="contact-sub">Statutory Compliance & Interest Analyzer</div>', unsafe_allow_html=True)
 st.markdown('<div class="main-header">⚖️ TDS AI AUDITOR PRO</div>', unsafe_allow_html=True)
 st.markdown(f'<div class="branding-sub">Developed by Abhishek Jakkula</div>', unsafe_allow_html=True)
 st.markdown('<div class="contact-sub">📧 Jakkulaabhishek5@gmail.com | Statutory Compliance Tool</div>', unsafe_allow_html=True)
