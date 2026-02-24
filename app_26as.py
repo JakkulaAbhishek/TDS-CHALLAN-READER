@@ -8,9 +8,6 @@ from dateutil.relativedelta import relativedelta
 import math
 import plotly.express as px
 
-# ---------------- UI CONFIG ----------------
-st.set_page_config(page_title="TDS AI Auditor | Abhishek Jakkula", layout="wide", page_icon="⚖️")
-
 # ----------- THEME SAFE MODERN UI -----------
 st.markdown("""
 <style>
