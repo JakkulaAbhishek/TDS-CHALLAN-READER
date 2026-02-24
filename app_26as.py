@@ -8,6 +8,9 @@ from dateutil.relativedelta import relativedelta
 import math
 import plotly.express as px
 
+# ---------------- UI CONFIG ----------------
+st.set_page_config(page_title="TDS AI Auditor | Abhishek Jakkula", layout="wide", page_icon="⚖️")
+
 # ----------- THEME SAFE MODERN UI -----------
 st.markdown("""
 <style>
@@ -87,10 +90,6 @@ footer {visibility: hidden;}
 st.markdown('<div class="main-header">⚖️ TDS AI AUDITOR PRO</div>', unsafe_allow_html=True)
 st.markdown('<div class="branding-sub">Developed by Abhishek Jakkula</div>', unsafe_allow_html=True)
 st.markdown('<div class="contact-sub">Statutory Compliance & Interest Analyzer</div>', unsafe_allow_html=True)
-st.markdown('<div class="main-header">⚖️ TDS AI AUDITOR PRO</div>', unsafe_allow_html=True)
-st.markdown(f'<div class="branding-sub">Developed by Abhishek Jakkula</div>', unsafe_allow_html=True)
-st.markdown('<div class="contact-sub">📧 Jakkulaabhishek5@gmail.com | Statutory Compliance Tool</div>', unsafe_allow_html=True)
-
 # ----------- COMPREHENSIVE TDS RATES & LIMITS (FY 2025-26) -----------
 SECTION_DATA = {
     "192": {"desc": "Salary", "rate": "Slab rates", "limit": "Basic exemption limit"},
@@ -252,4 +251,4 @@ if uploaded_files:
             rates_df = pd.DataFrame(SECTION_DATA).T.reset_index().rename(columns={"index": "Code", "desc": "Nature of Transaction", "rate": "Rate", "limit": "Threshold"})
             st.table(rates_df)
 
-st.markdown(f'<div class="footer">© {datetime.now().year} | Designed by Abhishek Jakkula | Jakkulaabhishek5@gmail.com</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="footer">© {datetime.now().year} | Designed by Abhishek Jakkula | Jakkulaabhishek5@gmail.com</div>', unsafe_allow_html=True) 
