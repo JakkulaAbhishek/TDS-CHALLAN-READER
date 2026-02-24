@@ -251,4 +251,9 @@ if uploaded_files:
             rates_df = pd.DataFrame(SECTION_DATA).T.reset_index().rename(columns={"index": "Code", "desc": "Nature of Transaction", "rate": "Rate", "limit": "Threshold"})
             st.table(rates_df)
 
-st.markdown(f'<div class="footer">© {datetime.now().year} | Designed by Abhishek Jakkula | Jakkulaabhishek5@gmail.com</div>', unsafe_allow_html=True) 
+st.markdown("""
+<div class="footer" style="text-align:center; margin-top:40px;">
+    <span style="font-weight:700;">Tool Developed by Abhishek Jakkula</span><br>
+    <span style="opacity:0.7;">📧 jakkulaabhishek5@gmail.com</span>
+</div>
+""", unsafe_allow_html=True) 
