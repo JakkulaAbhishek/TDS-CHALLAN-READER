@@ -11,75 +11,198 @@ import plotly.express as px
 # ---------------- UI CONFIG ----------------
 st.set_page_config(page_title="TDS AI Auditor | Abhishek Jakkula", layout="wide", page_icon="⚖️")
 
-# ----------- THEME SAFE MODERN UI -----------
+# ----------- ULTRA STYLISH GLASSMORPHIC UI -----------
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+
+/* Root variables for light/dark adaptation */
+:root {
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --card-bg: rgba(255, 255, 255, 0.25);
+    --card-border: rgba(255, 255, 255, 0.18);
+    --text-primary: #2d3748;
+    --text-secondary: #4a5568;
+    --accent: #667eea;
+    --accent-light: #9f7aea;
+}
+
+/* Dark mode overrides (if Streamlit in dark) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --card-bg: rgba(17, 25, 40, 0.75);
+        --card-border: rgba(255, 255, 255, 0.1);
+        --text-primary: #f7fafc;
+        --text-secondary: #e2e8f0;
+        --accent: #9f7aea;
+        --accent-light: #b794f4;
+    }
+    .stApp {
+        background: #0f172a;
+    }
+}
 
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
 
-/* Do NOT force dark background */
+/* Animated background */
 .stApp {
-    background-color: transparent;
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+    min-height: 100vh;
 }
 
-/* Main Header */
+@keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Glassmorphic card containers */
+.glass-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: 1px solid var(--card-border);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.5);
+}
+
+/* Main Header with glass effect */
 .main-header {
     font-weight: 800;
-    font-size: 3rem;
+    font-size: 3.5rem;
     text-align: center;
-    background: linear-gradient(90deg, #2563eb, #7c3aed);
+    background: linear-gradient(90deg, #fff, #e0e7ff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
     margin-bottom: 5px;
+    letter-spacing: -0.02em;
 }
 
 .branding-sub {
     text-align: center;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 600;
-    opacity: 0.8;
+    color: var(--text-primary);
+    opacity: 0.9;
     margin-bottom: 2px;
 }
 
 .contact-sub {
     text-align: center;
-    font-size: 0.9rem;
-    opacity: 0.6;
+    font-size: 1rem;
+    opacity: 0.8;
     margin-bottom: 30px;
+    color: var(--text-secondary);
+}
+
+/* Custom file uploader */
+.stFileUploader > div {
+    background: var(--card-bg) !important;
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    border: 2px dashed var(--accent-light) !important;
+    padding: 2rem;
+    transition: all 0.3s ease;
+}
+
+.stFileUploader > div:hover {
+    border-color: var(--accent) !important;
+    background: rgba(255,255,255,0.15) !important;
 }
 
 /* Buttons */
 .stButton>button,
 .stDownloadButton>button {
-    background: linear-gradient(90deg, #2563eb, #7c3aed);
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
     color: white !important;
-    border-radius: 8px;
-    padding: 10px 24px;
+    border-radius: 50px;
+    padding: 12px 30px;
     font-weight: 600;
     border: none;
     transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .stButton>button:hover,
 .stDownloadButton>button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
 }
 
-/* Dataframe */
+/* Dataframe styling */
 [data-testid="stDataFrame"] {
     background: transparent;
+}
+
+[data-testid="stDataFrame"] table {
+    background: var(--card-bg);
+    backdrop-filter: blur(5px);
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+[data-testid="stDataFrame"] th {
+    background: var(--accent) !important;
+    color: white !important;
+    font-weight: 600;
+}
+
+[data-testid="stDataFrame"] td {
+    color: var(--text-primary);
+}
+
+/* Expander */
+.streamlit-expanderHeader {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.streamlit-expanderContent {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 0 0 15px 15px;
+    border-top: none;
 }
 
 /* Footer */
 .footer {
     text-align: center;
-    margin-top: 40px;
-    font-size: 0.85rem;
-    opacity: 0.6;
+    margin-top: 60px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 50px;
+    border: 1px solid var(--card-border);
+}
+
+.footer a {
+    color: var(--accent-light);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.footer a:hover {
+    text-decoration: underline;
 }
 
 /* Hide default Streamlit footer */
@@ -87,9 +210,13 @@ footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
+# Wrap main content in glass card
+st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+
 st.markdown('<div class="main-header">⚖️ TDS AI AUDITOR PRO</div>', unsafe_allow_html=True)
 st.markdown('<div class="branding-sub">Developed by Abhishek Jakkula</div>', unsafe_allow_html=True)
 st.markdown('<div class="contact-sub">Statutory Compliance & Interest Analyzer</div>', unsafe_allow_html=True)
+
 # ----------- COMPREHENSIVE TDS RATES & LIMITS (FY 2025-26) -----------
 SECTION_DATA = {
     "192": {"desc": "Salary", "rate": "Slab rates", "limit": "Basic exemption limit"},
@@ -251,9 +378,11 @@ if uploaded_files:
             rates_df = pd.DataFrame(SECTION_DATA).T.reset_index().rename(columns={"index": "Code", "desc": "Nature of Transaction", "rate": "Rate", "limit": "Threshold"})
             st.table(rates_df)
 
+st.markdown('</div>', unsafe_allow_html=True)  # close glass-card
+
 st.markdown("""
-<div class="footer" style="text-align:center; margin-top:40px;">
+<div class="footer">
     <span style="font-weight:700;">Tool Developed by Abhishek Jakkula</span><br>
-    <span style="opacity:0.7;">📧 jakkulaabhishek5@gmail.com</span>
+    <span>📧 <a href="mailto:jakkulaabhishek5@gmail.com">jakkulaabhishek5@gmail.com</a></span>
 </div>
-""", unsafe_allow_html=True) 
+""", unsafe_allow_html=True)
